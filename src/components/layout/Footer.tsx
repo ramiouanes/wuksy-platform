@@ -15,7 +15,7 @@ export default function Footer() {
                 alt="WUKSY Logo"
                 width={140}
                 height={45}
-                className="h-10 w-auto brightness-0 invert"
+                className="h-10 w-auto"
               />
             </div>
             <p className="text-neutral-300">
