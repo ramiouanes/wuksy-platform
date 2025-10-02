@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #fafafa;
+    color: #404040;
+  }
+}
+
+@layer components {
+  .zen-text {
+    @apply text-primary-600;
+  }
+  
+  .zen-gradient {
+    @apply bg-gradient-to-br from-primary-50 to-stone-50;
+  }
+  
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-sm hover:translate-y-0;
+  }
+  
+  .health-score-poor {
+    @apply bg-red-50 text-red-700 border-red-100;
+  }
+  
+  .health-score-fair {
+    @apply bg-amber-50 text-amber-700 border-amber-100;
+  }
+  
+  .health-score-good {
+    @apply bg-primary-50 text-primary-700 border-primary-100;
+  }
+  
+  .health-score-excellent {
+    @apply bg-emerald-50 text-emerald-700 border-emerald-100;
+  }
+  
+  .biomarker-status-deficient {
+    @apply bg-red-50 text-red-700;
+  }
+  
+  .biomarker-status-suboptimal {
+    @apply bg-amber-50 text-amber-700;
+  }
+  
+  .biomarker-status-optimal {
+    @apply bg-primary-50 text-primary-700;
+  }
+  
+  .biomarker-status-excess {
+    @apply bg-orange-50 text-orange-700;
+  }
+  
+  .biomarker-status-concerning {
+    @apply bg-red-50 text-red-700;
+  }
+}
+
+@layer utilities {
+  .animation-delay-200 {
+    animation-delay: 0.2s;
+  }
+  
+  .animation-delay-400 {
+    animation-delay: 0.4s;
+  }
+  
+  .animation-delay-600 {
+    animation-delay: 0.6s;
+  }
+}
+
+/* Zen-inspired scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f7f7f7;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d1d1;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a3a3a3;
+}
+
+/* Calm loading animations */
+@keyframes shimmer-calm {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+.animate-shimmer-calm {
+  animation: shimmer-calm 3s infinite linear;
+  background: linear-gradient(
+    to right,
+    #fafafa 4%,
+    #f0f0f0 25%,
+    #fafafa 36%
+  );
+  background-size: 1000px 100%;
+}
