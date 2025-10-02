@@ -1,12 +1,10 @@
 [build]
   command = "npm run build"
   publish = ".next"
+  environment = { NODE_VERSION = "20", SECRETS_SCAN_OMIT_PATHS = ".next/cache/**,.next/server/**" }
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
-
-[build.environment]
-  NODE_VERSION = "18"
 
 # Redirect all server requests to Netlify functions
 [[redirects]]
