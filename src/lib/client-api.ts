@@ -32,7 +32,7 @@ export async function uploadDocument(file: File, userId: string) {
     return { success: true, document: docData }
   } catch (error) {
     console.error('Upload error:', error)
-    return { success: false, error: error.message }
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error occurred' }
   }
 }
 
@@ -49,7 +49,7 @@ export async function getUserProfile(userId: string) {
     return { success: true, profile: data }
   } catch (error) {
     console.error('Profile fetch error:', error)
-    return { success: false, error: error.message }
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error occurred' }
   }
 }
 
@@ -70,7 +70,7 @@ export async function updateUserProfile(userId: string, profileData: any) {
     return { success: true, profile: data }
   } catch (error) {
     console.error('Profile update error:', error)
-    return { success: false, error: error.message }
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error occurred' }
   }
 }
 
@@ -86,7 +86,7 @@ export async function getBiomarkers() {
     return { success: true, biomarkers: data }
   } catch (error) {
     console.error('Biomarkers fetch error:', error)
-    return { success: false, error: error.message }
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error occurred' }
   }
 }
 
@@ -114,6 +114,6 @@ export async function generateAnalysis(userId: string, documentId: string) {
     return { success: true, analysis: data }
   } catch (error) {
     console.error('Analysis generation error:', error)
-    return { success: false, error: error.message }
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error occurred' }
   }
 }

@@ -1,9 +1,7 @@
 /** @type {import('eslint').Linter.Config} */
-const config = {
+module.exports = {
   extends: ['next/core-web-vitals'],
   rules: {
     // Add any custom rules here
   },
 }
-
-module.exports = config
