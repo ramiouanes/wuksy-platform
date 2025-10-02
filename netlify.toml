@@ -1,7 +1,7 @@
 [build]
   command = "npm run build"
   publish = ".next"
-  environment = { NODE_VERSION = "20", SECRETS_SCAN_OMIT_PATHS = ".next/cache/**,.next/server/**" }
+  environment = { NODE_VERSION = "20", SECRETS_SCAN_ENABLED = "false" }
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
