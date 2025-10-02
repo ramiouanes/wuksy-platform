@@ -262,9 +262,14 @@ export default function UploadPage() {
           await processDocumentWithStreaming(uploadResult.document.id, fileObj.id, session?.access_token)
         } catch (processingError) {
           console.error('Processing failed:', processingError)
+          // Extract error message from the error object
+          const errorMessage = processingError instanceof Error 
+            ? processingError.message 
+            : 'Processing failed - check console for details'
+          
           setFiles(prev => prev.map(f => 
             f.id === fileObj.id 
-              ? { ...f, status: 'error' as const, processingStatus: 'Processing failed' }
+              ? { ...f, status: 'error' as const, processingStatus: errorMessage }
               : f
           ))
         }
