@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Output configuration for Netlify deployment
+  output: 'standalone',
+  
   experimental: {
     swcPlugins: [],
   },
