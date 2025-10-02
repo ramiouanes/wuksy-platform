@@ -3,9 +3,10 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { signIn, signInWithProvider } from '@/lib/auth'
-import { Mail, Lock, Eye, EyeOff, Heart } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Card from '@/components/ui/Card'
@@ -79,10 +80,15 @@ function SignInForm() {
         <Card className="p-8 space-y-8">
           {/* Header */}
           <div className="text-center space-y-4">
-            <div className="flex justify-center">
-              <div className="bg-gradient-to-r from-primary-500 to-secondary-500 p-3 rounded-full">
-                <Heart className="h-8 w-8 text-white" />
-              </div>
+            <div className="flex justify-center mb-4">
+              <Image
+                src="/logo.svg"
+                alt="WUKSY Logo"
+                width={140}
+                height={45}
+                className="h-12 w-auto"
+                priority
+              />
             </div>
             <h1 className="text-3xl font-bold text-neutral-900">
               Welcome Back to WUKSY
