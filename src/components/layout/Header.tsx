@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useAuth } from '@/components/auth/AuthProvider'
-import { Leaf, Menu, X, User, LogOut } from 'lucide-react'
+import { Menu, X, User, LogOut } from 'lucide-react'
 import Button from '@/components/ui/Button'
 
 export default function Header() {
@@ -16,12 +17,14 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-3">
-            <div className="bg-primary-500/10 p-2 rounded-full">
-              <Leaf className="h-5 w-5 text-primary-600" />
-            </div>
-            <span className="text-xl font-medium text-neutral-800">
-              WUKSY
-            </span>
+            <Image
+              src="/logo.svg"
+              alt="WUKSY Logo"
+              width={120}
+              height={40}
+              className="h-8 w-auto"
+              priority
+            />
           </Link>
 
           {/* Navigation - Desktop */}

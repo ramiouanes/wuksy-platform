@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { Heart, Mail, Phone, MapPin } from 'lucide-react'
+import Image from 'next/image'
+import { Mail, Phone, MapPin } from 'lucide-react'
 
 export default function Footer() {
   return (
@@ -8,11 +9,14 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <div className="bg-gradient-to-r from-primary-500 to-secondary-500 p-2 rounded-lg">
-                <Heart className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-2xl font-bold">WUKSY</span>
+            <div className="flex items-center">
+              <Image
+                src="/logo.svg"
+                alt="WUKSY Logo"
+                width={140}
+                height={45}
+                className="h-10 w-auto brightness-0 invert"
+              />
             </div>
             <p className="text-neutral-300">
               Transform your blood test confusion into a personalized wellness roadmap in minutes, not months.
