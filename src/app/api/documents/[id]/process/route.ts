@@ -300,19 +300,35 @@ async function handleStreamingProcess(request: NextRequest, documentId: string) 
         controller.close()
 
       } catch (error) {
-        console.error('Streaming processing error:', error)
+        console.error('❌ STREAMING PROCESSING ERROR ❌')
+        console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error)
+        console.error('Error message:', error instanceof Error ? error.message : String(error))
+        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+        console.error('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
         
-        // Update document status to failed
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        const errorStack = error instanceof Error ? error.stack : undefined
+        
+        // Update document status to failed with detailed error info
         await userSupabase
           .from('documents')
           .update({ 
             status: 'failed',
-            processing_errors: [error instanceof Error ? error.message : 'Unknown error']
+            processing_errors: [errorMessage],
+            processing_metadata: {
+              error_details: {
+                message: errorMessage,
+                stack: errorStack,
+                timestamp: new Date().toISOString(),
+                type: error instanceof Error ? error.constructor.name : typeof error
+              }
+            }
           })
           .eq('id', documentId)
 
         sendUpdate('Processing failed', { 
-          error: error instanceof Error ? error.message : 'Unknown error' 
+          error: errorMessage,
+          errorType: error instanceof Error ? error.constructor.name : typeof error
         })
         
         controller.close()
@@ -481,8 +497,15 @@ async function extractBiomarkersFromDocumentWithStreaming(
         language: 'eng',
         preprocessImage: true
       })
+      console.log('✅ OCR extraction successful, text length:', ocrResult.text.length)
+      console.log('📄 OCR text preview (first 500 chars):', ocrResult.text.substring(0, 500))
     } catch (ocrError) {
-      console.error('OCR Service Error:', ocrError)
+      console.error('❌ OCR Service Error - CRITICAL:', ocrError)
+      console.error('OCR error details:', {
+        type: ocrError instanceof Error ? ocrError.constructor.name : typeof ocrError,
+        message: ocrError instanceof Error ? ocrError.message : String(ocrError),
+        stack: ocrError instanceof Error ? ocrError.stack : 'No stack'
+      })
       throw new Error(`OCR processing failed: ${ocrError instanceof Error ? ocrError.message : 'Unknown OCR error'}`)
     }
 

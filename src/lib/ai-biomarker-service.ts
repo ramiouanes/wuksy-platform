@@ -608,9 +608,21 @@ EXTRACTION RULES:
       };
 
     } catch (error) {
-      console.error('AI extraction error:', error)
+      console.error('❌ AI EXTRACTION ERROR - CRITICAL ❌')
+      console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error)
+      console.error('Error message:', error instanceof Error ? error.message : String(error))
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+      
+      // Check for specific OpenAI errors
+      if (error && typeof error === 'object' && 'error' in error) {
+        console.error('OpenAI API error details:', JSON.stringify((error as any).error, null, 2))
+      }
+      
+      // Log full error for debugging
+      console.error('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
+      
       if (error instanceof SyntaxError) {
-        throw new Error('AI returned invalid JSON format')
+        throw new Error(`AI returned invalid JSON format: ${error.message}`)
       }
       throw error
     }
