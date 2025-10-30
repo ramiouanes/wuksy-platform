@@ -87,9 +87,29 @@ export default function ComingSoonPage() {
             </p>
 
             {/* Coming Soon Badge */}
-            <div className="inline-block px-6 py-2 bg-primary-50 text-primary-700 rounded-full text-sm font-medium">
-              Coming Soon
-            </div>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+            >
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-light text-neutral-800 tracking-tight">
+                Coming{' '}
+                <motion.span 
+                  className="zen-text font-medium text-primary-600"
+                  animate={{ 
+                    scale: [1, 1.05, 1],
+                  }}
+                  transition={{ 
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                  style={{ display: 'inline-block' }}
+                >
+                  Soon
+                </motion.span>
+              </h1>
+            </motion.div>
 
             {/* Email Subscription */}
             <div className="max-w-md mx-auto pt-4">
@@ -115,7 +135,7 @@ export default function ComingSoonPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={status === 'loading'}
-                    className="w-full h-14 text-base text-center"
+                    className="w-full h-14 text-base text-center border-sage-500/30 focus:border-sage-600 focus:ring-sage-500/20"
                   />
                   
                   <Button 
@@ -156,9 +176,9 @@ export default function ComingSoonPage() {
             {/* Trust Indicators */}
             <div className="flex justify-center items-center gap-6 text-sm text-neutral-500 pt-6">
               <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-primary-500" />
-                <span className="hidden sm:inline">HIPAA Compliant</span>
-                <span className="sm:hidden">Secure</span>
+                <Leaf className="h-4 w-4 text-primary-500" />
+                <span className="hidden sm:inline">Preventive Wellness</span>
+                <span className="sm:hidden">Wellness</span>
               </div>
               <div className="flex items-center gap-2">
                 <Heart className="h-4 w-4 text-primary-500" />

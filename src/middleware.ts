@@ -13,6 +13,18 @@ const PUBLIC_ROUTES = [
   '/api/admin/check',     // Admin auth check endpoint
 ]
 
+// Protected admin routes that require authentication
+const ADMIN_ROUTES = [
+  '/admin',               // Admin dashboard
+  '/api/admin/stats',     // Admin stats
+  '/api/admin/users',     // Admin users
+  '/api/admin/subscribers', // Admin subscribers
+  '/api/admin/documents', // Admin documents
+  '/api/admin/analyses',  // Admin analyses
+  '/api/admin/biomarkers', // Admin biomarkers
+  '/api/admin/export',    // Admin export
+]
+
 // Static assets and Next.js internal routes (don't check these)
 const STATIC_ASSETS_PATTERNS = [
   '/_next/',
@@ -35,7 +47,32 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // ALL OTHER ROUTES REQUIRE ADMIN AUTHENTICATION
+  // Check if this is an admin route
+  const isAdminRoute = pathname.startsWith('/admin') || pathname.startsWith('/api/admin/')
+  
+  if (isAdminRoute) {
+    // Admin routes require authentication
+    const adminAuth = request.cookies.get('admin-auth')
+    
+    if (!adminAuth || adminAuth.value !== 'true') {
+      // Not authenticated - redirect to admin login
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { error: 'Admin authentication required' },
+          { status: 401 }
+        )
+      }
+      
+      // Redirect to admin login page
+      const loginUrl = new URL('/admin/login', request.url)
+      return NextResponse.redirect(loginUrl)
+    }
+    
+    // Authenticated - allow access
+    return NextResponse.next()
+  }
+
+  // ALL OTHER ROUTES (app routes) ALSO REQUIRE ADMIN AUTHENTICATION (secure by default)
   // This is secure by default - any new route automatically requires auth
   const adminAuth = request.cookies.get('admin-auth')
 

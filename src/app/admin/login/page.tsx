@@ -31,8 +31,8 @@ export default function AdminLoginPage() {
       const data = await response.json()
 
       if (response.ok) {
-        // Redirect to app home page
-        router.push('/app')
+        // Redirect to admin dashboard
+        router.push('/admin')
       } else {
         setError(data.error || 'Invalid password')
       }
