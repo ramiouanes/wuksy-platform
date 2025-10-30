@@ -229,7 +229,7 @@ export default function HowItWorksPage() {
               Why Choose <span className="zen-text font-medium">WUKSY</span>?
             </h2>
             <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
-              We've built the most thoughtful and comprehensive health analysis platform available.
+              We&apos;ve built the most thoughtful and comprehensive health analysis platform available.
             </p>
           </motion.div>
 
@@ -272,7 +272,7 @@ export default function HowItWorksPage() {
             className="text-center mb-16"
           >
             <h2 className="text-3xl md:text-4xl font-light text-neutral-800 mb-4">
-              See What You'll <span className="zen-text font-medium">Receive</span>
+              See What You&apos;ll <span className="zen-text font-medium">Receive</span>
             </h2>
             <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
               Our comprehensive analysis provides clear, actionable insights about your health.
@@ -394,7 +394,7 @@ export default function HowItWorksPage() {
             </h2>
             <p className="text-lg text-neutral-600 max-w-xl mx-auto">
               Join thousands who have transformed their health understanding 
-              with WUKSY's gentle, AI-powered insights.
+              with WUKSY&apos;s gentle, AI-powered insights.
             </p>
             <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
               <Link href="/auth/signup">

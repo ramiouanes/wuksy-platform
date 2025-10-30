@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Leaf, Lock, ArrowRight } from 'lucide-react'
 import Button from '@/components/ui/Button'
@@ -112,12 +113,12 @@ export default function AdminLoginPage() {
 
         {/* Back Link */}
         <div className="text-center">
-          <a
+          <Link
             href="/"
             className="text-sm text-primary-600 hover:text-primary-700 transition-colors"
           >
             ← Back to Coming Soon page
-          </a>
+          </Link>
         </div>
       </motion.div>
     </div>

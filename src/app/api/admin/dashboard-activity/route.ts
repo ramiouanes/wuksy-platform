@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
       ...(recentDocuments || []).map(d => ({
         type: 'document_upload',
         date: d.uploaded_at,
-        details: { filename: d.filename, status: d.status, user: d.users?.email }
+        details: { filename: d.filename, status: d.status, user: (d.users as any)?.email }
       })),
       ...(recentAnalyses || []).map(a => ({
         type: 'health_analysis',
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
         details: { 
           score: a.overall_health_score, 
           category: a.health_category,
-          user: a.users?.email 
+          user: (a.users as any)?.email 
         }
       }))
     ]

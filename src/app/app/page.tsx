@@ -71,7 +71,7 @@ export default function AppHomePage() {
               </h1>
               <p className="text-lg md:text-xl text-neutral-600 max-w-2xl mx-auto leading-relaxed">
                 Transform confusion into clarity with mindful, AI-powered insights 
-                that help you understand your body's wisdom.
+                that help you understand your body&apos;s wisdom.
               </p>
             </div>
 
@@ -185,7 +185,7 @@ export default function AppHomePage() {
                     ))}
                   </div>
                   <blockquote className="text-neutral-700 leading-relaxed mb-6">
-                    "{testimonial.content}"
+                    &ldquo;{testimonial.content}&rdquo;
                   </blockquote>
                   <div className="font-medium text-neutral-800">
                     {testimonial.name}
@@ -211,7 +211,7 @@ export default function AppHomePage() {
                 Ready to Begin Your Journey?
               </h2>
               <p className="text-lg text-neutral-600 max-w-xl mx-auto">
-                Take the first mindful step towards understanding your body's wisdom 
+                Take the first mindful step towards understanding your body&apos;s wisdom 
                 and finding peace in your health journey.
               </p>
             </div>

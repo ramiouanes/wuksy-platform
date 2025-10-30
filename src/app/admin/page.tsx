@@ -373,7 +373,7 @@ export default function AdminDashboardPage() {
                   setStatusFilter={setStatusFilter}
                   onRefresh={fetchTabData}
                   onExport={() => handleExport('subscribers')}
-                  onDelete={(id) => handleDelete('subscribers', id)}
+                  onDelete={(id: string) => handleDelete('subscribers', id)}
                   formatDate={formatDate}
                   refreshing={refreshing}
                   currentPage={currentPage}
@@ -390,7 +390,7 @@ export default function AdminDashboardPage() {
                   setSearchTerm={setSearchTerm}
                   onRefresh={fetchTabData}
                   onExport={() => handleExport('users')}
-                  onDelete={(id) => handleDelete('users', id)}
+                  onDelete={(id: string) => handleDelete('users', id)}
                   formatDate={formatDate}
                   refreshing={refreshing}
                   currentPage={currentPage}
@@ -406,7 +406,7 @@ export default function AdminDashboardPage() {
                   statusFilter={statusFilter}
                   setStatusFilter={setStatusFilter}
                   onRefresh={fetchTabData}
-                  onDelete={(id) => handleDelete('documents', id)}
+                  onDelete={(id: string) => handleDelete('documents', id)}
                   formatDate={formatDate}
                   formatFileSize={formatFileSize}
                   refreshing={refreshing}
@@ -421,7 +421,7 @@ export default function AdminDashboardPage() {
                 <AnalysesTab
                   analyses={analyses}
                   onRefresh={fetchTabData}
-                  onDelete={(id) => handleDelete('analyses', id)}
+                  onDelete={(id: string) => handleDelete('analyses', id)}
                   formatDate={formatDate}
                   refreshing={refreshing}
                   currentPage={currentPage}

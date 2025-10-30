@@ -388,7 +388,7 @@ export default function DashboardPage() {
                       Begin Your Journey
                     </h3>
                     <p className="text-neutral-600 mb-8 max-w-md mx-auto">
-                      Upload your first blood test to start understanding your body's wisdom
+                      Upload your first blood test to start understanding your body&apos;s wisdom
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                       <Link href="/upload">
@@ -427,7 +427,7 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <h3 className="font-medium text-neutral-800 mb-3">
-                      Today's Insight
+                      Today&apos;s Insight
                     </h3>
                     <p className="text-sm text-neutral-600 mb-6 leading-relaxed">
                       Your body speaks in whispers through your biomarkers. 

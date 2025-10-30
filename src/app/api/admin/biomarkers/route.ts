@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       .select('category')
       .not('category', 'is', null)
 
-    const categories = [...new Set(allBiomarkers?.map(b => b.category) || [])]
+    const categories = Array.from(new Set(allBiomarkers?.map(b => b.category) || []))
 
     return NextResponse.json({
       biomarkers: biomarkers || [],

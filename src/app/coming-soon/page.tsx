@@ -121,7 +121,7 @@ export default function ComingSoonPage() {
                 >
                   <CheckCircle className="h-12 w-12 text-primary-600 mx-auto mb-3" />
                   <h3 className="text-lg font-medium text-primary-800 mb-2">
-                    You're on the list!
+                    You&apos;re on the list!
                   </h3>
                   <p className="text-primary-700 text-sm">
                     {message}

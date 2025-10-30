@@ -214,7 +214,7 @@ function SignInForm() {
           {/* Footer */}
           <div className="text-center">
             <p className="text-sm text-neutral-600">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link href="/auth/signup" className="text-primary-500 hover:text-primary-600 font-medium">
                 Sign up
               </Link>
