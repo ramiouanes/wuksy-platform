@@ -1,60 +1,60 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// Routes that require admin authentication
-const ADMIN_PROTECTED_ROUTES = [
-  '/app',
-  '/dashboard',
-  '/upload',
-  '/documents',
-  '/analysis',
-  '/profile',
-  '/biomarkers',
-  '/how-it-works',
-  '/auth/signin',
-  '/auth/signup',
-  '/auth/callback',
+// SECURE BY DEFAULT: Only these routes are accessible without admin authentication
+// Everything else requires the admin password
+const PUBLIC_ROUTES = [
+  '/',                    // Root redirects to coming-soon
+  '/coming-soon',         // Public landing page
+  '/admin/login',         // Admin login page
+  '/api/subscribe',       // Email subscription endpoint
+  '/api/admin/login',     // Admin login endpoint
+  '/api/admin/logout',    // Admin logout endpoint  
+  '/api/admin/check',     // Admin auth check endpoint
 ]
 
-// Public routes that don't require admin authentication
-const PUBLIC_ROUTES = [
-  '/',
-  '/coming-soon',
-  '/admin/login',
-  '/api/subscribe',
-  '/api/admin/login',
-  '/api/admin/logout',
-  '/api/admin/check',
-  '/_next',
+// Static assets and Next.js internal routes (don't check these)
+const STATIC_ASSETS_PATTERNS = [
+  '/_next/',
   '/favicon.ico',
   '/logo.svg',
+  '/api/_next/',
 ]
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Allow public routes
-  if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
+  // Skip middleware for static assets and Next.js internals
+  if (STATIC_ASSETS_PATTERNS.some(pattern => pathname.startsWith(pattern))) {
     return NextResponse.next()
   }
 
-  // Check if route needs admin protection
-  const needsAdminAuth = ADMIN_PROTECTED_ROUTES.some(route => 
-    pathname.startsWith(route)
-  )
-
-  if (needsAdminAuth) {
-    // Check for admin auth cookie
-    const adminAuth = request.cookies.get('admin-auth')
-
-    if (!adminAuth || adminAuth.value !== 'true') {
-      // Redirect to admin login
-      const loginUrl = new URL('/admin/login', request.url)
-      loginUrl.searchParams.set('redirect', pathname)
-      return NextResponse.redirect(loginUrl)
-    }
+  // Allow explicitly public routes
+  const isPublicRoute = PUBLIC_ROUTES.includes(pathname)
+  if (isPublicRoute) {
+    return NextResponse.next()
   }
 
+  // ALL OTHER ROUTES REQUIRE ADMIN AUTHENTICATION
+  // This is secure by default - any new route automatically requires auth
+  const adminAuth = request.cookies.get('admin-auth')
+
+  if (!adminAuth || adminAuth.value !== 'true') {
+    // Not authenticated
+    // For API routes, return 401 Unauthorized
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json(
+        { error: 'Admin authentication required' },
+        { status: 401 }
+      )
+    }
+    
+    // For page routes, redirect to coming-soon page
+    const comingSoonUrl = new URL('/coming-soon', request.url)
+    return NextResponse.redirect(comingSoonUrl)
+  }
+
+  // Authenticated - allow access
   return NextResponse.next()
 }
 
