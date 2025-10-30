@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WUKSY - Business Presentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: #fafafa;
+            color: #404040;
+            line-height: 1.6;
+        }
+
+        .presentation {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .slide {
+            background: white;
+            border-radius: 16px;
+            padding: 60px;
+            margin-bottom: 40px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            page-break-after: always;
+        }
+
+        .slide-title {
+            color: #6b9d6b;
+            font-size: 36px;
+            font-weight: 300;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #e8f0e8;
+            padding-bottom: 16px;
+        }
+
+        .hero-slide {
+            background: linear-gradient(135deg, #f6f8f6 0%, #fafaf9 100%);
+            text-align: center;
+            padding: 100px 60px;
+        }
+
+        .hero-title {
+            font-size: 64px;
+            font-weight: 300;
+            color: #404040;
+            margin-bottom: 16px;
+        }
+
+        .hero-subtitle {
+            font-size: 28px;
+            color: #6b9d6b;
+            font-weight: 500;
+            margin-bottom: 32px;
+        }
+
+        .hero-tagline {
+            font-size: 20px;
+            color: #737373;
+            max-width: 700px;
+            margin: 0 auto 40px;
+        }
+
+        .logo-placeholder {
+            width: 80px;
+            height: 80px;
+            background: #6b9d6b;
+            border-radius: 50%;
+            margin: 0 auto 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-heading {
+            font-size: 24px;
+            color: #404040;
+            font-weight: 500;
+            margin-bottom: 16px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-top: 24px;
+        }
+
+        .feature-card {
+            background: #f6f8f6;
+            padding: 24px;
+            border-radius: 12px;
+            border-left: 4px solid #6b9d6b;
+        }
+
+        .feature-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+
+        .feature-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #404040;
+            margin-bottom: 8px;
+        }
+
+        .feature-desc {
+            font-size: 14px;
+            color: #737373;
+        }
+
+        .screenshot-placeholder {
+            background: #e8f0e8;
+            border: 3px dashed #6b9d6b;
+            border-radius: 12px;
+            padding: 60px 40px;
+            text-align: center;
+            margin: 24px 0;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .screenshot-placeholder-title {
+            font-size: 20px;
+            color: #6b9d6b;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .screenshot-placeholder-desc {
+            font-size: 16px;
+            color: #5a8a5a;
+            max-width: 500px;
+        }
+
+        .screenshot-instruction {
+            background: #fff4e6;
+            border-left: 4px solid #f59e0b;
+            padding: 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #92400e;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .stat-box {
+            text-align: center;
+            padding: 24px;
+            background: #f6f8f6;
+            border-radius: 12px;
+        }
+
+        .stat-number {
+            font-size: 48px;
+            font-weight: 300;
+            color: #6b9d6b;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #737373;
+            margin-top: 8px;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: center;
+            margin-bottom: 24px;
+            padding: 20px;
+            background: #f6f8f6;
+            border-radius: 8px;
+        }
+
+        .flow-number {
+            width: 40px;
+            height: 40px;
+            background: #6b9d6b;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+
+        .flow-content h4 {
+            color: #404040;
+            font-size: 18px;
+            margin-bottom: 6px;
+        }
+
+        .flow-content p {
+            color: #737373;
+            font-size: 14px;
+        }
+
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        li {
+            padding: 12px 0;
+            padding-left: 32px;
+            position: relative;
+        }
+
+        li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #6b9d6b;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .print-instructions {
+            background: #dbeafe;
+            border: 2px solid #3b82f6;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+            print-display: none;
+        }
+
+        .print-instructions h3 {
+            color: #1e40af;
+            margin-bottom: 12px;
+        }
+
+        .print-instructions ul {
+            color: #1e3a8a;
+        }
+
+        .print-instructions li:before {
+            content: "→";
+            color: #3b82f6;
+        }
+
+        @media print {
+            .print-instructions {
+                display: none;
+            }
+            .slide {
+                margin-bottom: 0;
+                box-shadow: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+            .slide {
+                padding: 40px 30px;
+            }
+            .hero-slide {
+                padding: 60px 30px;
+            }
+            .hero-title {
+                font-size: 42px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        
+        <!-- INSTRUCTIONS FOR TAKING SCREENSHOTS -->
+        <div class="print-instructions">
+            <h3>📸 Screenshot Instructions</h3>
+            <p style="margin-bottom: 16px;">Before printing or presenting, add screenshots to the placeholder sections below. Here's where to capture them:</p>
+            <ul style="padding-left: 24px;">
+                <li><strong>Slide 5 - Landing Page:</strong> Navigate to http://localhost:3000/ (or deployed URL) and capture the hero section with "Find Peace in Your Health Journey"</li>
+                <li><strong>Slide 6 - Upload Flow:</strong> Navigate to /upload page and capture the drag-and-drop interface with file upload area</li>
+                <li><strong>Slide 7 - Dashboard:</strong> Navigate to /dashboard (while logged in) and capture the health overview with stats and recent analyses</li>
+                <li><strong>Slide 7 - Analysis Results:</strong> Navigate to /analysis/[id] (after processing) and capture biomarker insights and supplement recommendations</li>
+            </ul>
+            <p style="margin-top: 16px; font-weight: 600;">To add screenshots: Replace each screenshot-placeholder div with: &lt;img src="screenshots/filename.png" alt="Description" style="width: 100%; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"&gt;</p>
+        </div>
+
+        <!-- SLIDE 1: TITLE SLIDE -->
+        <div class="slide hero-slide">
+            <div class="logo-placeholder">🌱</div>
+            <h1 class="hero-title">WUKSY</h1>
+            <p class="hero-subtitle">AI-Powered Personalized Wellness Platform</p>
+            <p class="hero-tagline">Transform blood test confusion into personalized wellness guidance in minutes, not months</p>
+        </div>
+
+        <!-- SLIDE 2: VALUE PROPOSITION -->
+        <div class="slide">
+            <h2 class="slide-title">Value Proposition</h2>
+            
+            <div class="section">
+                <h3 class="section-heading" style="text-align: center; font-size: 28px; color: #6b9d6b; margin-bottom: 32px;">
+                    Transform Blood Test Confusion into Personalized Wellness in 5 Minutes
+                </h3>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">🧘</div>
+                        <div class="feature-title">Zen-Inspired Experience</div>
+                        <div class="feature-desc">Calm, anxiety-reducing interface that makes health data approachable and peaceful</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🤖</div>
+                        <div class="feature-title">AI-Powered Intelligence</div>
+                        <div class="feature-desc">Advanced AI analyzes biomarkers with medical-grade accuracy in minutes</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🎯</div>
+                        <div class="feature-title">Personalized Guidance</div>
+                        <div class="feature-desc">Custom supplement protocols and lifestyle recommendations based on your unique profile</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-title">Progress Tracking</div>
+                        <div class="feature-desc">Visual dashboards showing health trends and improvements over time</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔒</div>
+                        <div class="feature-title">Privacy & Security</div>
+                        <div class="feature-desc">Bank-level encryption and HIPAA-compliant data handling</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <div class="feature-title">Instant Results</div>
+                        <div class="feature-desc">Get comprehensive analysis in 5 minutes vs. months of research</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 32px; padding: 24px; background: #f6f8f6; border-radius: 12px; text-align: center;">
+                <h4 style="color: #404040; font-size: 18px; margin-bottom: 12px;">What Makes Us Different</h4>
+                <p style="color: #737373; font-size: 16px;">We combine cutting-edge AI technology with a mindful, human-centered design to make health optimization accessible and stress-free for everyone.</p>
+            </div>
+        </div>
+
+        <!-- SLIDE 3: CUSTOMER SEGMENTS -->
+        <div class="slide">
+            <h2 class="slide-title">Customer Segments</h2>
+            
+            <div class="section">
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">🏃</div>
+                        <div class="feature-title">Health Optimizers</div>
+                        <div class="feature-desc">Ages 25-45, tech-savvy individuals focused on preventive health and biohacking</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">💼</div>
+                        <div class="feature-title">Busy Professionals</div>
+                        <div class="feature-desc">Ages 30-55, limited time but concerned about health and wellness</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🩺</div>
+                        <div class="feature-title">Chronic Condition Patients</div>
+                        <div class="feature-desc">Individuals managing ongoing health issues seeking better understanding</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🧬</div>
+                        <div class="feature-title">Biohacking Community</div>
+                        <div class="feature-desc">Early adopters interested in data-driven health optimization</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🏥</div>
+                        <div class="feature-title">Wellness Practitioners (B2B)</div>
+                        <div class="feature-desc">Nutritionists, functional medicine doctors, health coaches</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🏢</div>
+                        <div class="feature-title">Healthcare Organizations (B2B)</div>
+                        <div class="feature-desc">Clinics, wellness centers seeking patient engagement tools</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-column" style="margin-top: 32px;">
+                <div style="padding: 24px; background: #f6f8f6; border-radius: 12px;">
+                    <h4 style="color: #6b9d6b; font-size: 18px; margin-bottom: 12px;">Primary: B2C Consumers</h4>
+                    <p style="color: #737373; font-size: 14px;">Direct-to-consumer platform targeting health-conscious individuals aged 25-55 with disposable income for supplements and wellness</p>
+                </div>
+                <div style="padding: 24px; background: #f6f8f6; border-radius: 12px;">
+                    <h4 style="color: #6b9d6b; font-size: 18px; margin-bottom: 12px;">Secondary: B2B Partners</h4>
+                    <p style="color: #737373; font-size: 14px;">White-label solutions for healthcare practitioners and wellness organizations to enhance patient care</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 4: HOW IT WORKS -->
+        <div class="slide">
+            <h2 class="slide-title">How WUKSY Works</h2>
+            
+            <div class="section">
+                <div class="flow-step">
+                    <div class="flow-number">1</div>
+                    <div class="flow-content">
+                        <h4>Upload Blood Test</h4>
+                        <p>Users upload their blood test results in any format (PDF, photo, screenshot)</p>
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="flow-number">2</div>
+                    <div class="flow-content">
+                        <h4>AI Document Processing</h4>
+                        <p>Advanced OCR and AI extract biomarker values with high accuracy</p>
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="flow-number">3</div>
+                    <div class="flow-content">
+                        <h4>Intelligent Analysis</h4>
+                        <p>AI analyzes biomarkers against optimal ranges, considering user's health profile</p>
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="flow-number">4</div>
+                    <div class="flow-content">
+                        <h4>Personalized Recommendations</h4>
+                        <p>Generate custom supplement protocols and lifestyle guidance</p>
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="flow-number">5</div>
+                    <div class="flow-content">
+                        <h4>Track Progress</h4>
+                        <p>Monitor improvements over time with beautiful dashboards and insights</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 4: LANDING PAGE SCREENSHOT -->
+        <div class="slide">
+            <h2 class="slide-title">User Experience: Landing Page</h2>
+            
+            <!-- <div class="screenshot-instruction">
+                📸 <strong>Screenshot needed:</strong> Navigate to your homepage (http://localhost:3000/ or deployed URL) and capture the hero section.
+            </div> -->
+
+            <!-- <div class="screenshot-placeholder">
+                <div class="screenshot-placeholder-title">🌱 Landing Page Screenshot</div>
+                <div class="screenshot-placeholder-desc">
+                    Zen-inspired design with "Find Peace in Your Health Journey" headline, 
+                    clear value propositions (Private & Secure, Science-Based, 5 Minutes), 
+                    and "Begin Your Journey" CTA
+                </div>
+            </div> -->
+            <!-- TO ADD SCREENSHOT: Replace the screenshot-placeholder div above with: -->
+            <img src="screenshots/landing-page.png" alt="WUKSY Landing Page" style="width: 100%; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            
+
+            <div class="section">
+                <p style="color: #737373; text-align: center; margin-top: 16px;">
+                    Clean, calming interface that reduces anxiety around health data. 
+                    Users immediately understand the value proposition and feel safe to proceed.
+                </p>
+            </div>
+        </div>
+
+        <!-- SLIDE 5: UPLOAD FLOW SCREENSHOT -->
+        <div class="slide">
+            <h2 class="slide-title">Key Feature: Smart Document Upload</h2>
+            
+            <!-- <div class="screenshot-instruction">
+                📸 <strong>Screenshot needed:</strong> Navigate to /upload and capture the drag-and-drop interface with file upload area.
+            </div>
+
+            <div class="screenshot-placeholder">
+                <div class="screenshot-placeholder-title">📤 Upload Interface Screenshot</div>
+                <div class="screenshot-placeholder-desc">
+                    Drag-and-drop interface with support for PDF, JPG, PNG formats. 
+                    Shows real-time processing with AI reasoning phases and progress indicators.
+                </div>
+            </div> -->
+            <!-- TO ADD SCREENSHOT: Replace the screenshot-placeholder div above with:-->
+            <img src="screenshots/upload-flow.png" alt="Document Upload Interface" style="width: 100%; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            
+
+            <div class="feature-grid" style="margin-top: 24px;">
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <div class="feature-title">AI-Powered OCR</div>
+                    <div class="feature-desc">Advanced text extraction from any format with high accuracy</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <div class="feature-title">Real-Time Processing</div>
+                    <div class="feature-desc">Live updates showing AI reasoning and extraction progress</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <div class="feature-title">Smart Matching</div>
+                    <div class="feature-desc">Automatically matches biomarkers to standardized database</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 6: DASHBOARD SCREENSHOT -->
+        <div class="slide">
+            <h2 class="slide-title">User Dashboard & Health Tracking</h2>
+            
+            <!-- <div class="screenshot-instruction">
+                📸 <strong>Screenshot needed:</strong> Navigate to /dashboard (must be logged in) and capture the health overview section with stats.
+            </div>
+
+            <div class="screenshot-placeholder">
+                <div class="screenshot-placeholder-title">📊 Dashboard Screenshot</div>
+                <div class="screenshot-placeholder-desc">
+                    Personalized dashboard showing wellness score, total analyses, biomarker count, 
+                    recent activity, and health trend indicators with beautiful zen-inspired design.
+                </div>
+            </div> -->
+            <!-- TO ADD SCREENSHOT: Replace the screenshot-placeholder div above with:-->
+            <img src="screenshots/dashboard.png" alt="User Dashboard" style="width: 100%; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            
+
+            <div class="section" style="margin-top: 24px;">
+                <h3 class="section-heading">Dashboard Features</h3>
+                <div class="two-column">
+                    <ul>
+                        <li>Overall wellness score</li>
+                        <li>Health trend tracking</li>
+                        <li>Quick action buttons</li>
+                        <li>Recent analyses history</li>
+                    </ul>
+                    <ul>
+                        <li>Biomarker summaries</li>
+                        <li>Progress visualization</li>
+                        <li>Personalized insights</li>
+                        <li>Next check-in reminders</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 7: ANALYSIS RESULTS SCREENSHOT -->
+        <div class="slide">
+            <h2 class="slide-title">AI-Generated Health Analysis</h2>
+            
+            <!-- <div class="screenshot-instruction">
+                📸 <strong>Screenshot needed:</strong> Navigate to /analysis/[id] (after processing a document) and capture the biomarker insights and recommendations.
+            </div>
+
+            <div class="screenshot-placeholder">
+                <div class="screenshot-placeholder-title">🧬 Analysis Results Screenshot</div>
+                <div class="screenshot-placeholder-desc">
+                    Detailed biomarker analysis with optimal ranges, current status, 
+                    personalized supplement recommendations, and lifestyle guidance in clear, 
+                    non-technical language.
+                </div>
+            </div> -->
+            <!-- TO ADD SCREENSHOT: Replace the screenshot-placeholder div above with:-->
+            <img src="screenshots/analysis-results.png" alt="Health Analysis Results" style="width: 100%; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            
+
+            <div class="feature-grid" style="margin-top: 24px;">
+                <div class="feature-card">
+                    <div class="feature-icon">🧪</div>
+                    <div class="feature-title">Biomarker Insights</div>
+                    <div class="feature-desc">Clear explanation of what each biomarker means and why it matters</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💊</div>
+                    <div class="feature-title">Supplement Protocols</div>
+                    <div class="feature-desc">Evidence-based recommendations with dosages and timing</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🌿</div>
+                    <div class="feature-title">Lifestyle Guidance</div>
+                    <div class="feature-desc">Actionable advice for diet, exercise, and wellness habits</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 8: KEY ACTIVITIES & RESOURCES -->
+        <div class="slide">
+            <h2 class="slide-title">Key Activities & Resources</h2>
+            
+            <div class="two-column">
+                <div class="section">
+                    <h3 class="section-heading">🎯 Key Activities</h3>
+                    <ul>
+                        <li>AI model training & optimization</li>
+                        <li>Biomarker database curation & updates</li>
+                        <li>Platform development & maintenance</li>
+                        <li>Customer support & education</li>
+                        <li>Medical research & validation</li>
+                        <li>Marketing & user acquisition</li>
+                        <li>Partnership development</li>
+                    </ul>
+                </div>
+
+                <div class="section">
+                    <h3 class="section-heading">💎 Key Resources</h3>
+                    <ul>
+                        <li>Proprietary AI algorithms</li>
+                        <li>Comprehensive biomarker database (500+ markers)</li>
+                        <li>Technology platform & infrastructure</li>
+                        <li>Medical & scientific advisory board</li>
+                        <li>User data & insights (anonymized)</li>
+                        <li>Brand & intellectual property</li>
+                        <li>Development team (AI, healthcare, UX)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section" style="margin-top: 32px;">
+                <h3 class="section-heading">🔧 Technology Stack</h3>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">⚛️</div>
+                        <div class="feature-title">Frontend</div>
+                        <div class="feature-desc">Next.js 15, TypeScript, Tailwind CSS, Framer Motion</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🗄️</div>
+                        <div class="feature-title">Backend</div>
+                        <div class="feature-desc">Supabase (PostgreSQL), RESTful APIs, Row-Level Security</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🤖</div>
+                        <div class="feature-title">AI & Processing</div>
+                        <div class="feature-desc">OpenAI GPT-4, Tesseract OCR, Advanced PDF parsing</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔒</div>
+                        <div class="feature-title">Security</div>
+                        <div class="feature-desc">End-to-end encryption, HIPAA compliance, Secure authentication</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 9: KEY PARTNERSHIPS -->
+        <div class="slide">
+            <h2 class="slide-title">Key Partnerships</h2>
+            
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">💊</div>
+                    <div class="feature-title">Supplement Brands</div>
+                    <div class="feature-desc">
+                        <strong>Partnership Type:</strong> Affiliate & Direct Integration<br>
+                        <strong>Value:</strong> Product recommendations, revenue sharing, co-marketing
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🏥</div>
+                    <div class="feature-title">Healthcare Providers</div>
+                    <div class="feature-desc">
+                        <strong>Partnership Type:</strong> Integration & Referral<br>
+                        <strong>Value:</strong> Patient engagement tools, white-label solutions, data insights
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔬</div>
+                    <div class="feature-title">Lab Testing Companies</div>
+                    <div class="feature-desc">
+                        <strong>Partnership Type:</strong> Data Integration<br>
+                        <strong>Value:</strong> Direct lab result imports, bundled services, shared customers
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎓</div>
+                    <div class="feature-title">Medical Institutions</div>
+                    <div class="feature-desc">
+                        <strong>Partnership Type:</strong> Research & Validation<br>
+                        <strong>Value:</strong> Clinical studies, medical credibility, expert advisors
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <div class="feature-title">Health Tech Platforms</div>
+                    <div class="feature-desc">
+                        <strong>Partnership Type:</strong> API Integration<br>
+                        <strong>Value:</strong> Wearable data, EHR integration, expanded ecosystem
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🏢</div>
+                    <div class="feature-title">Corporate Wellness Programs</div>
+                    <div class="feature-desc">
+                        <strong>Partnership Type:</strong> B2B2C<br>
+                        <strong>Value:</strong> Employee wellness benefits, bulk subscriptions, group analytics
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 10: CHANNELS & CUSTOMER RELATIONSHIPS -->
+        <div class="slide">
+            <h2 class="slide-title">Channels & Customer Relationships</h2>
+            
+            <div class="two-column">
+                <div class="section">
+                    <h3 class="section-heading">📢 Distribution Channels</h3>
+                    <ul>
+                        <li><strong>Direct Web Platform:</strong> wuksy.com</li>
+                        <li><strong>Mobile Apps:</strong> iOS & Android (planned)</li>
+                        <li><strong>Social Media:</strong> Instagram, TikTok, YouTube</li>
+                        <li><strong>Content Marketing:</strong> Blog, podcasts, guides</li>
+                        <li><strong>Influencer Partnerships:</strong> Health & wellness creators</li>
+                        <li><strong>Healthcare Referrals:</strong> Doctor recommendations</li>
+                        <li><strong>Affiliate Network:</strong> Health blogs & websites</li>
+                    </ul>
+                </div>
+
+                <div class="section">
+                    <h3 class="section-heading">🤝 Customer Relationships</h3>
+                    <ul>
+                        <li><strong>Self-Service Platform:</strong> Automated AI analysis</li>
+                        <li><strong>Personalized Communication:</strong> Email insights & tips</li>
+                        <li><strong>Community:</strong> User forums & support groups</li>
+                        <li><strong>Educational Content:</strong> Health guides & resources</li>
+                        <li><strong>Customer Support:</strong> Chat, email, FAQ</li>
+                        <li><strong>Premium Concierge:</strong> One-on-one consultations (paid tier)</li>
+                        <li><strong>Loyalty Program:</strong> Rewards for regular tracking</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div style="margin-top: 32px; padding: 24px; background: #f6f8f6; border-radius: 12px;">
+                <h4 style="color: #6b9d6b; font-size: 18px; margin-bottom: 16px; text-align: center;">Customer Acquisition Strategy</h4>
+                <div class="feature-grid" style="grid-template-columns: repeat(4, 1fr);">
+                    <div style="text-align: center;">
+                        <div style="font-size: 32px; color: #6b9d6b; font-weight: 300;">Phase 1</div>
+                        <div style="font-size: 14px; color: #737373;">Organic + Content</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 32px; color: #6b9d6b; font-weight: 300;">Phase 2</div>
+                        <div style="font-size: 14px; color: #737373;">Influencer + Paid</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 32px; color: #6b9d6b; font-weight: 300;">Phase 3</div>
+                        <div style="font-size: 14px; color: #737373;">Partnerships</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 32px; color: #6b9d6b; font-weight: 300;">Phase 4</div>
+                        <div style="font-size: 14px; color: #737373;">B2B Enterprise</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 11: REVENUE STREAMS & COST STRUCTURE -->
+        <div class="slide">
+            <h2 class="slide-title">Revenue Streams & Cost Structure</h2>
+            
+            <div class="section">
+                <h3 class="section-heading">💰 Revenue Streams</h3>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">💳</div>
+                        <div class="feature-title">Freemium Subscriptions</div>
+                        <div class="feature-desc">
+                            <strong>Free:</strong> 1 analysis/year<br>
+                            <strong>Basic:</strong> $19.99/month - unlimited analyses<br>
+                            <strong>Premium:</strong> $39.99/month - concierge support
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🤝</div>
+                        <div class="feature-title">Affiliate Commissions</div>
+                        <div class="feature-desc">
+                            <strong>Model:</strong> 10-20% commission on supplement sales<br>
+                            <strong>Potential:</strong> $20-50 per converting user
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🏥</div>
+                        <div class="feature-title">B2B Licensing</div>
+                        <div class="feature-desc">
+                            <strong>White-label:</strong> $5,000-15,000/month per practice<br>
+                            <strong>Enterprise:</strong> Custom pricing for large organizations
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-title">Data Insights (Anonymized)</div>
+                        <div class="feature-desc">
+                            <strong>Model:</strong> Aggregated health trends for research<br>
+                            <strong>Clients:</strong> Supplement companies, researchers
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-column" style="margin-top: 32px;">
+                <div class="section">
+                    <h3 class="section-heading">💸 Cost Structure</h3>
+                    <ul>
+                        <li><strong>Technology & Infrastructure:</strong> 25%
+                            <ul style="margin-left: 24px; margin-top: 8px;">
+                                <li style="font-size: 13px;">Cloud hosting, AI API costs, development tools</li>
+                            </ul>
+                        </li>
+                        <li><strong>Personnel:</strong> 45%
+                            <ul style="margin-left: 24px; margin-top: 8px;">
+                                <li style="font-size: 13px;">Engineering, medical advisors, customer support</li>
+                            </ul>
+                        </li>
+                        <li><strong>Marketing & Sales:</strong> 20%
+                            <ul style="margin-left: 24px; margin-top: 8px;">
+                                <li style="font-size: 13px;">Digital ads, content creation, partnerships</li>
+                            </ul>
+                        </li>
+                        <li><strong>Operations & Admin:</strong> 10%
+                            <ul style="margin-left: 24px; margin-top: 8px;">
+                                <li style="font-size: 13px;">Legal, compliance, office, insurance</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="section">
+                    <h3 class="section-heading">📈 Unit Economics</h3>
+                    <div style="background: #e8f0e8; padding: 16px; border-radius: 8px; margin-bottom: 12px;">
+                        <div style="font-size: 14px; color: #737373;">Customer Acquisition Cost (CAC)</div>
+                        <div style="font-size: 28px; color: #6b9d6b; font-weight: 300;">$45</div>
+                    </div>
+                    <div style="background: #e8f0e8; padding: 16px; border-radius: 8px; margin-bottom: 12px;">
+                        <div style="font-size: 14px; color: #737373;">Lifetime Value (LTV)</div>
+                        <div style="font-size: 28px; color: #6b9d6b; font-weight: 300;">$360</div>
+                    </div>
+                    <div style="background: #f6f8f6; padding: 16px; border-radius: 8px; border: 2px solid #6b9d6b;">
+                        <div style="font-size: 14px; color: #737373;">LTV:CAC Ratio</div>
+                        <div style="font-size: 32px; color: #6b9d6b; font-weight: 600;">8:1</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 12: MARKET OPPORTUNITY -->
+        <div class="slide">
+            <h2 class="slide-title">Market Opportunity</h2>
+            
+            <div class="section">
+                <div class="feature-grid">
+                    <div class="stat-box">
+                        <div class="stat-number">$4.5T</div>
+                        <div class="stat-label">Global Wellness Market</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number">68%</div>
+                        <div class="stat-label">Don't Understand Blood Tests</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number">$64B</div>
+                        <div class="stat-label">Supplement Industry</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-column" style="margin-top: 40px;">
+                <div class="section">
+                    <h3 class="section-heading">Target Audience</h3>
+                    <ul>
+                        <li>Health-conscious individuals (25-55 years)</li>
+                        <li>People with chronic conditions</li>
+                        <li>Biohacking enthusiasts</li>
+                        <li>Wellness practitioners</li>
+                        <li>Preventive health seekers</li>
+                    </ul>
+                </div>
+
+                <div class="section">
+                    <h3 class="section-heading">Competitive Advantage</h3>
+                    <ul>
+                        <li>Zen-inspired, anxiety-reducing UX</li>
+                        <li>Advanced AI with reasoning transparency</li>
+                        <li>Comprehensive biomarker database</li>
+                        <li>Personalized supplement protocols</li>
+                        <li>5-minute results vs. hours of research</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 13: ROADMAP & GROWTH STRATEGY -->
+        <div class="slide">
+            <h2 class="slide-title">Roadmap & Growth Strategy</h2>
+            
+            <div class="section">
+                <div class="feature-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="feature-card">
+                        <div class="feature-icon">🚀</div>
+                        <div class="feature-title">Q1-Q2 2025: Launch & Validate</div>
+                        <div class="feature-desc">
+                            <ul style="padding-left: 20px; margin-top: 12px;">
+                                <li style="font-size: 13px;">Beta launch with 500 users</li>
+                                <li style="font-size: 13px;">AI accuracy improvements</li>
+                                <li style="font-size: 13px;">Supplement brand partnerships</li>
+                                <li style="font-size: 13px;">Content marketing foundation</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📈</div>
+                        <div class="feature-title">Q3-Q4 2025: Scale</div>
+                        <div class="feature-desc">
+                            <ul style="padding-left: 20px; margin-top: 12px;">
+                                <li style="font-size: 13px;">Mobile app launch (iOS/Android)</li>
+                                <li style="font-size: 13px;">Target 10,000+ users</li>
+                                <li style="font-size: 13px;">B2B pilot programs</li>
+                                <li style="font-size: 13px;">Influencer partnerships</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🌍</div>
+                        <div class="feature-title">2026: Expand</div>
+                        <div class="feature-desc">
+                            <ul style="padding-left: 20px; margin-top: 12px;">
+                                <li style="font-size: 13px;">International expansion</li>
+                                <li style="font-size: 13px;">Enterprise B2B sales</li>
+                                <li style="font-size: 13px;">Wearable integrations</li>
+                                <li style="font-size: 13px;">Advanced AI features</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-column" style="margin-top: 32px;">
+                <div class="section">
+                    <h3 class="section-heading">🎯 Success Metrics (Year 1)</h3>
+                    <div style="background: #f6f8f6; padding: 20px; border-radius: 8px;">
+                        <ul>
+                            <li><strong>10,000</strong> active users</li>
+                            <li><strong>15%</strong> conversion to paid</li>
+                            <li><strong>$500K</strong> ARR (Annual Recurring Revenue)</li>
+                            <li><strong>25%</strong> MoM growth rate</li>
+                            <li><strong>4.5/5</strong> user satisfaction score</li>
+                            <li><strong>5</strong> B2B partnerships</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3 class="section-heading">💡 Competitive Advantages</h3>
+                    <div style="background: #f6f8f6; padding: 20px; border-radius: 8px;">
+                        <ul>
+                            <li><strong>Zen UX:</strong> Unique anxiety-reducing design</li>
+                            <li><strong>Speed:</strong> 5-min results vs. hours</li>
+                            <li><strong>AI Transparency:</strong> Show reasoning process</li>
+                            <li><strong>Comprehensiveness:</strong> 500+ biomarkers</li>
+                            <li><strong>Privacy-First:</strong> HIPAA compliant from day one</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 14: CALL TO ACTION -->
+        <div class="slide">
+            <h2 class="slide-title">Join Us in Transforming Healthcare</h2>
+            
+            <div style="text-align: center; padding: 40px 20px;">
+                <h3 style="font-size: 32px; color: #6b9d6b; font-weight: 300; margin-bottom: 24px;">
+                    WUKSY: Where AI Meets Mindful Wellness
+                </h3>
+                <p style="font-size: 18px; color: #737373; max-width: 700px; margin: 0 auto 40px; line-height: 1.8;">
+                    We're building the future of personalized health—making blood test interpretation 
+                    accessible, stress-free, and actionable for millions who want to optimize their wellness.
+                </p>
+            </div>
+
+            <div class="feature-grid" style="margin-bottom: 40px;">
+                <div style="text-align: center; padding: 24px; background: #f6f8f6; border-radius: 12px;">
+                    <div style="font-size: 40px; color: #6b9d6b; font-weight: 300; margin-bottom: 8px;">$4.5T</div>
+                    <div style="font-size: 14px; color: #737373;">Market Opportunity</div>
+                </div>
+                <div style="text-align: center; padding: 24px; background: #f6f8f6; border-radius: 12px;">
+                    <div style="font-size: 40px; color: #6b9d6b; font-weight: 300; margin-bottom: 8px;">68%</div>
+                    <div style="font-size: 14px; color: #737373;">Confused by Tests</div>
+                </div>
+                <div style="text-align: center; padding: 24px; background: #f6f8f6; border-radius: 12px;">
+                    <div style="font-size: 40px; color: #6b9d6b; font-weight: 300; margin-bottom: 8px;">5 min</div>
+                    <div style="font-size: 14px; color: #737373;">To Results</div>
+                </div>
+                <div style="text-align: center; padding: 24px; background: #f6f8f6; border-radius: 12px;">
+                    <div style="font-size: 40px; color: #6b9d6b; font-weight: 300; margin-bottom: 8px;">8:1</div>
+                    <div style="font-size: 14px; color: #737373;">LTV:CAC Ratio</div>
+                </div>
+            </div>
+
+            <div style="background: linear-gradient(135deg, #f6f8f6 0%, #fafaf9 100%); padding: 40px; border-radius: 16px; text-align: center;">
+                <h4 style="color: #404040; font-size: 24px; margin-bottom: 16px;">What We're Looking For</h4>
+                <div class="two-column" style="text-align: left; margin-top: 24px;">
+                    <div>
+                        <h5 style="color: #6b9d6b; font-size: 18px; margin-bottom: 12px;">💰 Investment</h5>
+                        <p style="color: #737373; font-size: 14px;">Seed funding to scale platform, expand team, and accelerate growth</p>
+                    </div>
+                    <div>
+                        <h5 style="color: #6b9d6b; font-size: 18px; margin-bottom: 12px;">🤝 Partnerships</h5>
+                        <p style="color: #737373; font-size: 14px;">Healthcare providers, supplement brands, and wellness organizations</p>
+                    </div>
+                </div>
+                <div style="margin-top: 32px; padding-top: 32px; border-top: 1px solid #d3e4d3;">
+                    <p style="color: #6b9d6b; font-size: 20px; font-weight: 500;">
+                        Let's bring peace and clarity to millions on their health journey. 🌱
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Simple print function for easy PDF export
+        function printPresentation() {
+            window.print();
+        }
+        
+        // Add keyboard shortcut for printing (Ctrl/Cmd + P)
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                e.preventDefault();
+                printPresentation();
+            }
+        });
+    </script>
+</body>
+</html>
+
