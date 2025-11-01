@@ -12,7 +12,8 @@ import {
   CheckCircle,
   X,
   Upload,
-  Activity
+  Activity,
+  ArrowDown
 } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
@@ -22,6 +23,15 @@ export default function ComingSoonPage() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [message, setMessage] = useState('')
   const [showModal, setShowModal] = useState(false)
+  const [showScrollButton, setShowScrollButton] = useState(true)
+
+  const scrollToSubscription = () => {
+    const subscriptionSection = document.getElementById('modal-subscription')
+    if (subscriptionSection) {
+      subscriptionSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      setShowScrollButton(false)
+    }
+  }
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -111,8 +121,45 @@ export default function ComingSoonPage() {
               </h1>
             </motion.div>
 
+            {/* Learn More Button */}
+            <div className="max-w-md mx-auto pt-2">
+              <motion.button
+                onClick={() => {
+                  setShowModal(true)
+                  setShowScrollButton(true)
+                }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ 
+                  opacity: 1, 
+                  y: 0,
+                }}
+                transition={{ 
+                  opacity: { duration: 0.6, delay: 0.5 },
+                  y: { duration: 0.6, delay: 0.5 },
+                }}
+                className="w-full h-14 flex items-center justify-center px-6 text-neutral-700 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 rounded-xl font-medium transition-all duration-200 text-sm border border-neutral-300 shadow-md hover:shadow-lg relative overflow-hidden group"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {/* Shimmer effect */}
+                <motion.div
+                  className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                  animate={{
+                    translateX: ['-100%', '200%'],
+                  }}
+                  transition={{
+                    duration: 2.5,
+                    repeat: Infinity,
+                    repeatDelay: 1.5,
+                    ease: "easeInOut"
+                  }}
+                />
+                <span className="relative z-10 zen-text">What is Wuksy?</span>
+              </motion.button>
+            </div>
+
             {/* Email Subscription */}
-            <div className="max-w-md mx-auto pt-4">
+            <div className="max-w-md mx-auto pt-2">
               {status === 'success' ? (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -164,14 +211,6 @@ export default function ComingSoonPage() {
                 </form>
               )}
             </div>
-
-            {/* Know More Link */}
-            <button
-              onClick={() => setShowModal(true)}
-              className="text-primary-600 hover:text-primary-700 font-medium transition-colors text-sm underline"
-            >
-              Know More
-            </button>
 
             {/* Trust Indicators */}
             <div className="flex justify-center items-center gap-6 text-sm text-neutral-500 pt-6">
@@ -227,13 +266,46 @@ export default function ComingSoonPage() {
               {/* Close Button */}
               <button
                 onClick={() => setShowModal(false)}
-                className="absolute top-4 right-4 p-2 text-neutral-400 hover:text-neutral-600 transition-colors rounded-full hover:bg-neutral-100"
+                className="absolute top-4 right-4 p-2 text-neutral-400 hover:text-neutral-600 transition-colors rounded-full hover:bg-neutral-100 z-10"
               >
                 <X className="h-5 w-5" />
               </button>
 
+              {/* Fixed Scroll Indicator at Bottom */}
+              <AnimatePresence>
+                {showScrollButton && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
+                    className="absolute bottom-2 left-0 right-0 flex justify-center pointer-events-none z-10"
+                  >
+                    <motion.button
+                      onClick={scrollToSubscription}
+                      className="pointer-events-auto flex items-center justify-center w-10 h-12 bg-white/95 backdrop-blur-sm rounded-full shadow-lg border border-primary-200 text-primary-600 hover:text-primary-700 hover:bg-primary-50 transition-all"
+                      aria-label="Scroll to subscription"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <motion.div
+                        animate={{
+                          y: [0, 4, 0],
+                        }}
+                        transition={{
+                          duration: 1.5,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        <ArrowDown className="h-5 w-5" />
+                      </motion.div>
+                    </motion.button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Modal Content */}
-              <div className="p-8 md:p-12">
+              <div className="p-8 md:p-12 pb-24">
                 {/* Header */}
                 <div className="text-center mb-8">
                   <div className="flex justify-center mb-6">
@@ -320,16 +392,61 @@ export default function ComingSoonPage() {
                   </p>
                 </div>
 
-                {/* CTA */}
-                <div className="text-center">
-                  <Button
-                    onClick={() => setShowModal(false)}
-                    size="lg"
-                    className="px-8"
-                  >
-                    <Mail className="h-4 w-4 mr-2" />
-                    Get Notified at Launch
-                  </Button>
+                {/* Email Subscription in Modal */}
+                <div id="modal-subscription" className="border-t border-neutral-200 pt-8 mt-8">
+                  <h3 className="text-xl font-medium text-neutral-800 mb-4 text-center">
+                    Be the First to Know
+                  </h3>
+                  {status === 'success' ? (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="bg-primary-50 border border-primary-200 rounded-xl p-6"
+                    >
+                      <CheckCircle className="h-12 w-12 text-primary-600 mx-auto mb-3" />
+                      <h3 className="text-lg font-medium text-primary-800 mb-2">
+                        You&apos;re on the list!
+                      </h3>
+                      <p className="text-primary-700 text-sm">
+                        {message}
+                      </p>
+                    </motion.div>
+                  ) : (
+                    <form onSubmit={handleSubscribe} className="space-y-3">
+                      <Input
+                        type="email"
+                        placeholder="Enter your email to be notified"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={status === 'loading'}
+                        className="w-full h-14 text-base text-center border-sage-500/30 focus:border-sage-600 focus:ring-sage-500/20"
+                      />
+                      
+                      <Button 
+                        type="submit" 
+                        size="lg" 
+                        isLoading={status === 'loading'}
+                        className="w-full h-14"
+                      >
+                        <Mail className="h-4 w-4 mr-2" />
+                        Notify Me at Launch
+                      </Button>
+                      
+                      {status === 'error' && (
+                        <motion.p
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="text-red-600 text-sm text-center"
+                        >
+                          {message}
+                        </motion.p>
+                      )}
+                      
+                      <p className="text-neutral-500 text-xs text-center">
+                        No spam, ever. Unsubscribe anytime.
+                      </p>
+                    </form>
+                  )}
                 </div>
               </div>
             </motion.div>
