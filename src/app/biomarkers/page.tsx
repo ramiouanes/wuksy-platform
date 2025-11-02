@@ -432,7 +432,7 @@ export default function BiomarkersPage() {
                       {(biomarker.improved_description || biomarker.description) && (
                         <div>
                           <ExpandableText
-                            text={biomarker.improved_description || biomarker.description}
+                            text={biomarker.improved_description || biomarker.description || ''}
                             maxLines={isMobile ? 3 : 5}
                             className="text-sm text-neutral-600 leading-relaxed"
                           />
