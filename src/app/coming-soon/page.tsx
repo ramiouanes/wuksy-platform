@@ -162,29 +162,45 @@ export default function ComingSoonPage() {
                 animate={prefersReducedMotion ? {} : { 
                   opacity: 1, 
                   y: 0,
+                  boxShadow: [
+                    "0 8px 16px rgba(0, 0, 0, 0.2), 0 4px 8px rgba(0, 0, 0, 0.15)",
+                    "0 12px 24px rgba(0, 0, 0, 0.25), 0 6px 12px rgba(0, 0, 0, 0.2)",
+                    "0 8px 16px rgba(0, 0, 0, 0.2), 0 4px 8px rgba(0, 0, 0, 0.15)"
+                  ]
                 }}
                 transition={{ 
                   opacity: { duration: 0.6, delay: 0.5 },
                   y: { duration: 0.6, delay: 0.5 },
+                  boxShadow: { 
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }
                 }}
-                className="w-full h-14 flex items-center justify-center px-6 text-neutral-700 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 rounded-xl font-medium transition-all duration-200 text-sm border border-neutral-300 shadow-md hover:shadow-lg relative overflow-hidden group"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ 
+                  scale: 1.03,
+                  boxShadow: "0 16px 32px rgba(0, 0, 0, 0.2), 0 8px 16px rgba(0, 0, 0, 0.15)"
+                }}
+                whileTap={{ scale: 0.97 }}
+                className="w-full h-14 flex items-center justify-center px-8 text-white bg-primary-500 hover:bg-primary-600 active:bg-primary-700 rounded-lg font-medium transition-colors duration-200 text-lg relative overflow-hidden group"
               >
-                {/* Shimmer effect */}
+                {/* Shimmer effect - Enhanced with best practices */}
                 <motion.div
-                  className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                  className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"
+                  style={{
+                    background: 'linear-gradient(135deg, transparent 0%, transparent 30%, rgba(255, 255, 255, 0.25) 50%, transparent 70%, transparent 100%)',
+                  }}
                   animate={prefersReducedMotion ? {} : {
-                    translateX: ['-100%', '200%'],
+                    translateX: ['-100%', '250%'],
                   }}
                   transition={prefersReducedMotion ? {} : {
-                    duration: 2.5,
+                    duration: 3,
                     repeat: Infinity,
-                    repeatDelay: 1.5,
-                    ease: "easeInOut"
+                    repeatDelay: 0.4,
+                    ease: [0.4, 0, 0.2, 1], // Custom cubic-bezier for smooth, natural motion
                   }}
                 />
-                <span className="relative z-10 zen-text">What is Wuksy?</span>
+                <span className="relative z-10">What is Wuksy?</span>
               </motion.button>
             </div>
 
