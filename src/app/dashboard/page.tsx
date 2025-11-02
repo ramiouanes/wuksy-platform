@@ -16,10 +16,14 @@ import {
   Activity,
   BookOpen,
   ShoppingCart,
-  Heart
+  Heart,
+  ChevronDown
 } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
+import { ExpandableText } from '@/components/ui/ExpandableText'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { createClient } from '@supabase/supabase-js'
 
 interface Analysis {
@@ -47,6 +51,12 @@ export default function DashboardPage() {
   const [analyses, setAnalyses] = useState<Analysis[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [showSupport, setShowSupport] = useState(false)
+  
+  // Mobile responsiveness hooks
+  const prefersReducedMotion = useReducedMotion()
+  const breakpoint = useBreakpoint()
+  const isMobile = breakpoint === 'xs' || breakpoint === 'sm'
 
   useEffect(() => {
     if (!loading && !user) {
@@ -203,28 +213,28 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
+          initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+          animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+          transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8 }}
           className="mb-12"
         >
-          <h1 className="text-3xl font-light text-neutral-800 mb-3">
+          <h1 className="text-2xl sm:text-3xl font-light text-neutral-800 mb-3">
             Welcome back, {(user as any).user_metadata?.full_name || user.email?.split('@')[0]} 🌱
           </h1>
-          <p className="text-neutral-600">
+          <p className="text-sm sm:text-base text-neutral-600">
             Continue your peaceful journey towards optimal health
           </p>
         </motion.div>
 
         {/* Quick Actions */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.1 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"
+          initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+          animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+          transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.1 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-12"
         >
           <Link href="/upload">
             <Card className="p-6 card-hover group cursor-pointer">
@@ -275,42 +285,43 @@ export default function DashboardPage() {
           <div className="lg:col-span-2 space-y-8">
             {/* Health Overview */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+              animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.2 }}
             >
-              <Card className="p-8">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-xl font-medium text-neutral-800">Health Overview</h2>
+              <Card className="p-6 sm:p-8">
+                <div className="flex items-center justify-between mb-6 sm:mb-8">
+                  <h2 className="text-lg sm:text-xl font-medium text-neutral-800">Health Overview</h2>
                   {stats && stats.improvementTrend !== '0%' && (
-                    <div className="flex items-center space-x-2 text-sm text-primary-600">
-                      <TrendingUp className="h-4 w-4" />
-                      <span>{stats.improvementTrend} this period</span>
+                    <div className="flex items-center space-x-2 text-xs sm:text-sm text-primary-600">
+                      <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="hidden sm:inline">{stats.improvementTrend} this period</span>
+                      <span className="sm:hidden">{stats.improvementTrend}</span>
                     </div>
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div className="flex flex-col gap-4 sm:grid sm:grid-cols-2 md:grid-cols-4 md:gap-6">
                   <div className="text-center">
-                    <div className="text-2xl font-light zen-text mb-2">
+                    <div className="text-xl sm:text-2xl font-light zen-text mb-2">
                       {stats?.averageScore || 0}
                     </div>
                     <div className="text-sm text-neutral-600">Wellness Score</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-light text-stone-600 mb-2">
+                    <div className="text-xl sm:text-2xl font-light text-stone-600 mb-2">
                       {stats?.totalAnalyses || 0}
                     </div>
                     <div className="text-sm text-neutral-600">Analyses</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-light text-primary-500 mb-2">
+                    <div className="text-xl sm:text-2xl font-light text-primary-500 mb-2">
                       {analyses.length > 0 ? analyses[0].biomarker_count || 0 : 0}
                     </div>
                     <div className="text-sm text-neutral-600">Biomarkers</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-light text-sage-600 mb-2">
+                    <div className="text-xl sm:text-2xl font-light text-sage-600 mb-2">
                       {stats?.documentsWithBiomarkers || 0}
                     </div>
                     <div className="text-sm text-neutral-600">Documents</div>
@@ -321,22 +332,23 @@ export default function DashboardPage() {
 
             {/* Recent Documents & Analyses */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+              animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.3 }}
             >
-              <Card className="p-8">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-xl font-medium text-neutral-800">Recent Activity</h2>
+              <Card className="p-6 sm:p-8">
+                <div className="flex items-center justify-between mb-6 sm:mb-8">
+                  <h2 className="text-lg sm:text-xl font-medium text-neutral-800">Recent Activity</h2>
                   <div className="flex space-x-2">
                     <Link href="/documents">
                       <Button variant="ghost" size="sm">
-                        View Documents
-                        <ArrowRight className="ml-2 h-4 w-4" />
+                        <span className="hidden sm:inline">View Documents</span>
+                        <span className="sm:hidden">Docs</span>
+                        <ArrowRight className="ml-1 sm:ml-2 h-4 w-4" />
                       </Button>
                     </Link>
                     {analyses.length > 3 && (
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" className="hidden md:flex">
                         View All Analyses
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
@@ -416,24 +428,25 @@ export default function DashboardPage() {
           <div className="space-y-6">
             {/* Daily Insight */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+              animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.4 }}
             >
               <Card className="p-6 zen-gradient">
                 <div className="flex items-start space-x-3">
-                  <div className="bg-primary-500/10 p-2 rounded-full">
+                  <div className="bg-primary-500/10 p-2 rounded-full flex-shrink-0">
                     <Leaf className="h-5 w-5 text-primary-600" />
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <h3 className="font-medium text-neutral-800 mb-3">
                       Today&apos;s Insight
                     </h3>
-                    <p className="text-sm text-neutral-600 mb-6 leading-relaxed">
-                      Your body speaks in whispers through your biomarkers. 
-                      Listen gently and respond with kindness.
-                    </p>
-                    <Button variant="outline" size="sm">
+                    <ExpandableText
+                      text="Your body speaks in whispers through your biomarkers. Listen gently and respond with kindness."
+                      maxLines={2}
+                      className="text-sm text-neutral-600 mb-4 leading-relaxed"
+                    />
+                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
                       Reflect More
                     </Button>
                   </div>
@@ -443,9 +456,9 @@ export default function DashboardPage() {
 
             {/* Quick Stats */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.5 }}
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+              animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.5 }}
             >
               <Card className="p-6">
                 <h3 className="font-medium text-neutral-800 mb-6">Journey Stats</h3>
@@ -484,19 +497,37 @@ export default function DashboardPage() {
 
             {/* Support */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+              animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.6 }}
             >
               <Card className="p-6">
-                <h3 className="font-medium text-neutral-800 mb-4">Caring Support</h3>
-                <p className="text-sm text-neutral-600 mb-6 leading-relaxed">
-                  Questions about your journey? Our caring team is here to guide you 
-                  with patience and understanding.
-                </p>
-                <Button variant="outline" size="sm" className="w-full">
-                  Get Support
-                </Button>
+                <button
+                  onClick={() => setShowSupport(!showSupport)}
+                  className="w-full text-left flex items-center justify-between touch-target"
+                  aria-expanded={showSupport}
+                  aria-label={showSupport ? 'Collapse support section' : 'Expand support section'}
+                >
+                  <h3 className="font-medium text-neutral-800">Caring Support</h3>
+                  {isMobile && (
+                    <ChevronDown 
+                      className={`h-4 w-4 text-neutral-400 transition-transform ${showSupport ? 'rotate-180' : ''}`}
+                      aria-hidden="true"
+                    />
+                  )}
+                </button>
+                
+                {(showSupport || !isMobile) && (
+                  <>
+                    <p className="text-sm text-neutral-600 mt-4 mb-6 leading-relaxed">
+                      Questions about your journey? Our caring team is here to guide you 
+                      with patience and understanding.
+                    </p>
+                    <Button variant="outline" size="sm" className="w-full">
+                      Get Support
+                    </Button>
+                  </>
+                )}
               </Card>
             </motion.div>
           </div>

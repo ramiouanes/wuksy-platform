@@ -9,19 +9,22 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', isLoading, children, ...props }, ref) => {
-    const baseClasses = 'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-200 disabled:opacity-60 disabled:cursor-not-allowed'
+    // Base classes now include active state for touch devices and minimum touch target
+    const baseClasses = 'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-200 disabled:opacity-60 disabled:cursor-not-allowed active:scale-95'
     
+    // Enhanced variants with active states for touch devices
     const variants = {
-      primary: 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm hover:shadow-md',
-      secondary: 'bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200',
-      outline: 'border border-primary-300 text-primary-600 hover:bg-primary-50 hover:border-primary-400',
-      ghost: 'text-primary-600 hover:bg-primary-50 hover:text-primary-700'
+      primary: 'bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700 shadow-sm hover:shadow-md',
+      secondary: 'bg-stone-100 text-stone-700 hover:bg-stone-200 active:bg-stone-300 border border-stone-200',
+      outline: 'border border-primary-300 text-primary-600 hover:bg-primary-50 hover:border-primary-400 active:bg-primary-100',
+      ghost: 'text-primary-600 hover:bg-primary-50 hover:text-primary-700 active:bg-primary-100'
     }
     
+    // Sizes with minimum 44px touch target for mobile accessibility
     const sizes = {
-      sm: 'px-4 py-2 text-sm',
-      md: 'px-6 py-2.5 text-sm',
-      lg: 'px-8 py-3 text-base'
+      sm: 'min-h-[44px] px-4 text-sm',  // Meets 44px touch target minimum
+      md: 'min-h-[44px] px-6 text-base', // Default size
+      lg: 'min-h-[48px] px-8 text-lg',   // Larger touch target for prominence
     }
 
     return (

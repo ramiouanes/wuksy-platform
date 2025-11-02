@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { 
@@ -17,10 +18,12 @@ import {
   Camera,
   Search,
   BookOpen,
-  TrendingUp
+  TrendingUp,
+  ChevronDown
 } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 
 const steps = [
   {
@@ -116,21 +119,24 @@ const faqs = [
 ]
 
 export default function HowItWorksPage() {
+  const [expandedFaq, setExpandedFaq] = useState<string | null>(null)
+  const prefersReducedMotion = useReducedMotion()
+  
   return (
     <div className="min-h-screen bg-neutral-50">
       {/* Hero Section */}
       <section className="py-24 bg-gradient-to-br from-primary-50 to-secondary-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+            animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8 }}
             className="space-y-8"
           >
-            <h1 className="text-4xl md:text-5xl font-light text-neutral-800 leading-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-light text-neutral-800 leading-tight">
               How <span className="zen-text font-medium">WUKSY</span> Works
             </h1>
-            <p className="text-xl text-neutral-600 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg sm:text-xl text-neutral-600 max-w-2xl mx-auto leading-relaxed">
               Transform your blood test confusion into clarity with our gentle, 
               AI-powered approach to personalized wellness.
             </p>
@@ -153,15 +159,15 @@ export default function HowItWorksPage() {
       <section className="py-20 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+            animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8 }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-light text-neutral-800 mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-light text-neutral-800 mb-4">
               Your Journey to <span className="zen-text font-medium">Wellness</span>
             </h2>
-            <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg text-neutral-600 max-w-2xl mx-auto">
               Our simple, four-step process transforms complex biomarker data into actionable insights.
             </p>
           </motion.div>
@@ -170,9 +176,9 @@ export default function HowItWorksPage() {
             {steps.map((step, index) => (
               <motion.div
                 key={step.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: index * 0.1 }}
+                initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+                animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+                transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: index * 0.1 }}
                 className={`flex flex-col lg:flex-row items-center gap-12 ${
                   index % 2 === 1 ? 'lg:flex-row-reverse' : ''
                 }`}
@@ -220,15 +226,15 @@ export default function HowItWorksPage() {
       <section className="py-20 zen-gradient">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+            animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.4 }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-light text-neutral-800 mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-light text-neutral-800 mb-4">
               Why Choose <span className="zen-text font-medium">WUKSY</span>?
             </h2>
-            <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg text-neutral-600 max-w-2xl mx-auto">
               We&apos;ve built the most thoughtful and comprehensive health analysis platform available.
             </p>
           </motion.div>
@@ -237,11 +243,11 @@ export default function HowItWorksPage() {
             {features.map((feature, index) => (
               <motion.div
                 key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.5 + index * 0.1 }}
+                initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+                animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+                transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.5 + index * 0.1 }}
               >
-                <Card className="p-8 h-full bg-white/80 backdrop-blur-sm">
+                <Card className="p-6 sm:p-8 h-full bg-white/80 backdrop-blur-sm">
                   <div className="flex items-start space-x-4">
                     <div className="bg-primary-100 p-3 rounded-full">
                       <feature.icon className="h-6 w-6 text-primary-600" />
@@ -266,21 +272,21 @@ export default function HowItWorksPage() {
       <section className="py-20 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+            animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.6 }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-light text-neutral-800 mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-light text-neutral-800 mb-4">
               See What You&apos;ll <span className="zen-text font-medium">Receive</span>
             </h2>
-            <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg text-neutral-600 max-w-2xl mx-auto">
               Our comprehensive analysis provides clear, actionable insights about your health.
             </p>
           </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <Card className="p-6">
+            <Card className="p-4 sm:p-6">
               <div className="bg-green-50 p-4 rounded-lg mb-4">
                 <TrendingUp className="h-8 w-8 text-green-600" />
               </div>
@@ -296,7 +302,7 @@ export default function HowItWorksPage() {
               </div>
             </Card>
 
-            <Card className="p-6">
+            <Card className="p-4 sm:p-6">
               <div className="bg-primary-50 p-4 rounded-lg mb-4">
                 <Activity className="h-8 w-8 text-primary-600" />
               </div>
@@ -318,7 +324,7 @@ export default function HowItWorksPage() {
               </div>
             </Card>
 
-            <Card className="p-6">
+            <Card className="p-4 sm:p-6">
               <div className="bg-sage-50 p-4 rounded-lg mb-4">
                 <Leaf className="h-8 w-8 text-sage-600" />
               </div>
@@ -345,37 +351,62 @@ export default function HowItWorksPage() {
       <section className="py-20 bg-neutral-100">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.7 }}
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+            animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.7 }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-light text-neutral-800 mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-light text-neutral-800 mb-4">
               Frequently Asked <span className="zen-text font-medium">Questions</span>
             </h2>
-            <p className="text-lg text-neutral-600">
+            <p className="text-base sm:text-lg text-neutral-600">
               Everything you need to know about using WUKSY.
             </p>
           </motion.div>
 
-          <div className="space-y-6">
-            {faqs.map((faq, index) => (
-              <motion.div
-                key={faq.question}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.8 + index * 0.1 }}
-              >
-                <Card className="p-6">
-                  <h3 className="text-lg font-medium text-neutral-800 mb-3">
-                    {faq.question}
-                  </h3>
-                  <p className="text-neutral-600 leading-relaxed">
-                    {faq.answer}
-                  </p>
-                </Card>
-              </motion.div>
-            ))}
+          <div className="space-y-4">
+            {faqs.map((faq, index) => {
+              const isExpanded = expandedFaq === faq.question
+              
+              return (
+                <motion.div
+                  key={faq.question}
+                  initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+                  animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+                  transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.8 + index * 0.1 }}
+                >
+                  <Card 
+                    className="p-6 cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => setExpandedFaq(isExpanded ? null : faq.question)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-base sm:text-lg font-medium text-neutral-800 pr-4">
+                        {faq.question}
+                      </h3>
+                      <ChevronDown 
+                        className={`h-5 w-5 text-neutral-400 transition-transform flex-shrink-0 ${
+                          isExpanded ? 'rotate-180' : ''
+                        }`}
+                        aria-hidden="true"
+                      />
+                    </div>
+                    
+                    {isExpanded && (
+                      <motion.div
+                        initial={prefersReducedMotion ? {} : { opacity: 0, height: 0 }}
+                        animate={prefersReducedMotion ? { opacity: 1, height: 'auto' } : { opacity: 1, height: 'auto' }}
+                        exit={prefersReducedMotion ? {} : { opacity: 0, height: 0 }}
+                        transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.2 }}
+                      >
+                        <p className="text-sm sm:text-base text-neutral-600 leading-relaxed mt-4">
+                          {faq.answer}
+                        </p>
+                      </motion.div>
+                    )}
+                  </Card>
+                </motion.div>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -384,15 +415,15 @@ export default function HowItWorksPage() {
       <section className="py-20 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.9 }}
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+            animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.9 }}
             className="space-y-8"
           >
-            <h2 className="text-3xl md:text-4xl font-light text-neutral-800">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-light text-neutral-800">
               Ready to Begin Your Journey?
             </h2>
-            <p className="text-lg text-neutral-600 max-w-xl mx-auto">
+            <p className="text-base sm:text-lg text-neutral-600 max-w-xl mx-auto">
               Join thousands who have transformed their health understanding 
               with WUKSY&apos;s gentle, AI-powered insights.
             </p>

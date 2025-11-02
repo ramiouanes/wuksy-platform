@@ -33,6 +33,9 @@ import {
 } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
+import { ExpandableText } from '@/components/ui/ExpandableText'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { HealthAnalysis } from '@/lib/supabase'
 import { formatProcessingTime } from '@/lib/utils'
 
@@ -43,6 +46,9 @@ interface AnalysisPageProps {
 export default function AnalysisPage({ params }: AnalysisPageProps) {
   const { user, session } = useAuth()
   const router = useRouter()
+  const breakpoint = useBreakpoint()
+  const prefersReducedMotion = useReducedMotion()
+  const isMobile = breakpoint === 'xs' || breakpoint === 'sm'
   const [analysis, setAnalysis] = useState<HealthAnalysis | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -422,47 +428,48 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="mb-8"
+          initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+          animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+          transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8 }}
+          className="mb-6 sm:mb-8"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
               <Button
                 variant="ghost"
                 onClick={() => router.push('/dashboard')}
-                className="p-2"
+                className="p-2 flex-shrink-0"
+                aria-label="Back to dashboard"
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <div>
-                <h1 className="text-3xl font-light text-neutral-800">
-                  Health Analysis Results
+              <div className="min-w-0 flex-1">
+                <h1 className="text-2xl sm:text-3xl font-light text-neutral-800">
+                  Health Analysis
                 </h1>
-                <div className="flex items-center space-x-4 text-sm text-neutral-600 mt-2">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-neutral-600 mt-1">
                   <div className="flex items-center space-x-1">
-                    <Calendar className="h-4 w-4" />
+                    <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
                     <span>{new Date(analysis.created_at).toLocaleDateString()}</span>
                   </div>
-                  <div className="flex items-center space-x-1">
+                  <div className="hidden sm:flex items-center space-x-1">
                     <FileText className="h-4 w-4" />
-                    <span>Analysis #{analysis.id.slice(0, 8)}</span>
+                    <span>#{analysis.id.slice(0, 8)}</span>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <Button variant="outline" size="sm">
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
+            <div className="flex items-center space-x-2 flex-shrink-0 ml-2">
+              <Button variant="outline" size="sm" className="hidden sm:flex">
+                <Share2 className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Share</span>
               </Button>
               <Button variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                Download
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline sm:ml-2">Download</span>
               </Button>
             </div>
           </div>
@@ -474,42 +481,43 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
 
             {/* Tab Navigation */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="mb-8"
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+              animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.2 }}
+              className="mb-6 sm:mb-8"
             >
-              <Card className="p-1">
-                <div className="flex space-x-1">
-                  {tabs.map((tab) => {
-                    const Icon = tab.icon
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`flex flex-col items-center space-y-1 px-4 py-3 rounded-lg font-medium text-sm transition-colors ${
-                          activeTab === tab.id
-                            ? 'bg-primary-100 text-primary-700'
-                            : 'text-neutral-600 hover:text-neutral-800 hover:bg-neutral-50'
-                        }`}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <Icon className="h-4 w-4" />
-                          <span>{tab.label}</span>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              </Card>
+              <div className="overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+                <Card className="p-1 inline-flex min-w-full sm:flex sm:min-w-0">
+                  <div className="flex space-x-1">
+                    {tabs.map((tab) => {
+                      const Icon = tab.icon
+                      return (
+                        <button
+                          key={tab.id}
+                          onClick={() => setActiveTab(tab.id)}
+                          className={`flex items-center space-x-1.5 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${
+                            activeTab === tab.id
+                              ? 'bg-primary-100 text-primary-700'
+                              : 'text-neutral-600 hover:text-neutral-800 hover:bg-neutral-50'
+                          }`}
+                          aria-current={activeTab === tab.id ? 'page' : undefined}
+                        >
+                          <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                          <span className="hidden xs:inline">{tab.label}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </Card>
+              </div>
             </motion.div>
 
             {/* Tab Content */}
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+              animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5 }}
             >
               {activeTab === 'overview' && (
                 <div className="space-y-6">
@@ -750,9 +758,9 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                         {/* Status Navigation Sidebar */}
                         <div className="lg:col-span-1 order-2 lg:order-1">
                           <motion.div
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.5 }}
+                            initial={prefersReducedMotion ? {} : { opacity: 0, x: -20 }}
+                            animate={prefersReducedMotion ? {} : { opacity: 1, x: 0 }}
+                            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5 }}
                           >
                             <Card className="p-4 sticky top-6">
                               <h4 className="text-sm font-medium text-neutral-800 mb-3">Filter by Status</h4>
@@ -1004,7 +1012,11 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                                 {biomarkerDetails?.description && (
                                                   <div>
                                                     <h5 className="text-xs font-semibold text-neutral-800 mb-2">What is this?</h5>
-                                                    <p className="text-xs text-neutral-600 leading-relaxed">{biomarkerDetails.description}</p>
+                                                    <ExpandableText
+                                                      text={biomarkerDetails.description}
+                                                      maxLines={isMobile ? 3 : 5}
+                                                      className="text-xs text-neutral-600 leading-relaxed"
+                                                    />
                                                   </div>
                                                 )}
 
@@ -1012,13 +1024,15 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                                 {(biomarkerDetails?.clinical_significance || insight.hasInsight) && (
                                                   <div>
                                                     <h5 className="text-xs font-semibold text-neutral-800 mb-2">Clinical Significance</h5>
-                                                    <p className="text-xs text-neutral-600 leading-relaxed">
-                                                      {biomarkerDetails?.clinical_significance || 
+                                                    <ExpandableText
+                                                      text={biomarkerDetails?.clinical_significance || 
                                                        insight.clinical_significance || 
                                                        insight.functional_medicine_perspective || 
                                                        insight.interpretation ||
                                                        'Clinical significance information not available for this biomarker.'}
-                                                    </p>
+                                                      maxLines={isMobile ? 2 : 4}
+                                                      className="text-xs text-neutral-600 leading-relaxed"
+                                                    />
                                                   </div>
                                                 )}
 
@@ -1159,9 +1173,9 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                       {/* Priority Navigation */}
                       <div className="lg:col-span-1 order-2 lg:order-1">
                         <motion.div
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.5 }}
+                          initial={prefersReducedMotion ? {} : { opacity: 0, x: -20 }}
+                          animate={prefersReducedMotion ? {} : { opacity: 1, x: 0 }}
+                          transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5 }}
                         >
                           <Card className="p-4 sticky top-6">
                             <h4 className="text-sm font-medium text-neutral-800 mb-3">Priority Levels</h4>
@@ -1417,7 +1431,11 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                         {/* Why This Helps */}
                                         <div>
                                           <h5 className="text-xs font-semibold text-neutral-800 mb-2">Benefits</h5>
-                                          <p className="text-xs text-neutral-600 leading-relaxed">{supplement.reasoning}</p>
+                                          <ExpandableText
+                                            text={supplement.reasoning}
+                                            maxLines={3}
+                                            className="text-xs text-neutral-600 leading-relaxed"
+                                          />
                                         </div>
                                         
                                         {/* Target Biomarkers */}
@@ -1438,7 +1456,11 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                         {supplement.expected_improvement && (
                                           <div>
                                             <h5 className="text-xs font-semibold text-neutral-800 mb-2">Expected Results</h5>
-                                            <p className="text-xs text-neutral-600 leading-relaxed">{supplement.expected_improvement}</p>
+                                            <ExpandableText
+                                              text={supplement.expected_improvement}
+                                              maxLines={isMobile ? 2 : 3}
+                                              className="text-xs text-neutral-600 leading-relaxed"
+                                            />
                                           </div>
                                         )}
                                         
@@ -1521,14 +1543,14 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
 
               {activeTab === 'lifestyle' && (
                 <div className="space-y-6">
-                  <Card className="p-6">
-                    <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-xl font-medium text-neutral-800">
-                        Lifestyle Optimization Plan
+                  <Card className="p-4 sm:p-6">
+                    <div className="flex items-center justify-between mb-4 sm:mb-6">
+                      <h3 className="text-lg sm:text-xl font-medium text-neutral-800">
+                        Lifestyle Plan
                       </h3>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" className="hidden sm:flex">
                         <Download className="h-4 w-4 mr-2" />
-                        Export Plan
+                        Export
                       </Button>
                     </div>
                     
@@ -1562,29 +1584,31 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                               <div>
                                 {/* Lifestyle Sub-tabs */}
                                 <div className="mb-6">
-                                  <div className="flex flex-wrap gap-1 bg-neutral-100 p-1 rounded-lg">
-                                    {lifestyleTabs.map((tab) => {
-                                      const Icon = tab.icon
-                                      return (
-                                        <button
-                                          key={tab.id}
-                                          onClick={() => setActiveLifestyleTab(tab.id)}
-                                          className={`flex items-center space-x-2 px-3 py-2 rounded-md font-medium text-sm transition-colors flex-shrink-0 ${
-                                            activeLifestyleTab === tab.id
-                                              ? 'bg-white text-neutral-800 shadow-sm border border-neutral-200'
-                                              : 'text-neutral-600 hover:text-neutral-800 hover:bg-neutral-200/50'
-                                          }`}
-                                        >
-                                          <Icon className="h-4 w-4" />
-                                          <span>{tab.label}</span>
-                                          {tab.count > 0 && tab.id !== 'all' && (
-                                            <span className="text-xs bg-neutral-200 text-neutral-600 px-1.5 py-0.5 rounded-full">
-                                              {tab.count}
-                                            </span>
-                                          )}
-                                        </button>
-                                      )
-                                    })}
+                                  <div className="overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+                                    <div className="flex gap-1 bg-neutral-100 p-1 rounded-lg min-w-max sm:min-w-0 sm:flex-wrap">
+                                      {lifestyleTabs.map((tab) => {
+                                        const Icon = tab.icon
+                                        return (
+                                          <button
+                                            key={tab.id}
+                                            onClick={() => setActiveLifestyleTab(tab.id)}
+                                            className={`flex items-center space-x-1.5 sm:space-x-2 px-2 sm:px-3 py-2 rounded-md font-medium text-xs sm:text-sm transition-colors flex-shrink-0 whitespace-nowrap ${
+                                              activeLifestyleTab === tab.id
+                                                ? 'bg-white text-neutral-800 shadow-sm border border-neutral-200'
+                                                : 'text-neutral-600 hover:text-neutral-800 hover:bg-neutral-200/50'
+                                            }`}
+                                          >
+                                            <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                            <span>{tab.label}</span>
+                                            {tab.count > 0 && tab.id !== 'all' && (
+                                              <span className="text-xs bg-neutral-200 text-neutral-600 px-1.5 py-0.5 rounded-full">
+                                                {tab.count}
+                                              </span>
+                                            )}
+                                          </button>
+                                        )
+                                      })}
+                                    </div>
                                   </div>
                                 </div>
 
@@ -1607,29 +1631,26 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                         <div key={cardId} className="border border-neutral-200 hover:border-neutral-300 rounded-lg transition-all duration-200">
                                           {/* Card Header - Always Visible */}
                                           <div 
-                                            className="p-4 cursor-pointer bg-neutral-50 hover:bg-neutral-100 transition-colors"
+                                            className="p-3 sm:p-4 cursor-pointer bg-neutral-50 hover:bg-neutral-100 transition-colors"
                                             onClick={() => toggleLifestyleCard(cardId)}
                                           >
-                                            <div className="flex items-center justify-between">
-                                              <div className="flex items-center space-x-3">
-                                                <div className="p-2 rounded-full bg-neutral-100">
-                                                  <Icon className="h-4 w-4 text-neutral-600" />
+                                            <div className="flex items-start justify-between gap-2">
+                                              <div className="flex items-start space-x-2 sm:space-x-3 flex-1 min-w-0">
+                                                <div className="p-1.5 sm:p-2 rounded-full bg-neutral-100 flex-shrink-0">
+                                                  <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-neutral-600" />
                                                 </div>
-                                                <div>
-                                                  <h4 className="font-medium text-neutral-800 capitalize">
+                                                <div className="min-w-0 flex-1">
+                                                  <h4 className="text-sm sm:text-base font-medium text-neutral-800 capitalize">
                                                     {item.category || 'Lifestyle'}
                                                   </h4>
-                                                  <p className="text-sm text-neutral-600 truncate">
-                                                    {item.specific_recommendation?.length > 80 
-                                                      ? `${item.specific_recommendation.substring(0, 80)}...`
-                                                      : item.specific_recommendation
-                                                    }
+                                                  <p className="text-xs sm:text-sm text-neutral-600 line-clamp-2">
+                                                    {item.specific_recommendation}
                                                   </p>
                                                 </div>
                                               </div>
-                                              <div className="flex items-center space-x-2">
+                                              <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
                                                 {item.frequency && (
-                                                  <span className="text-xs bg-white px-2 py-1 rounded border text-neutral-600">
+                                                  <span className="hidden sm:inline text-xs bg-white px-2 py-1 rounded border text-neutral-600 whitespace-nowrap">
                                                     {item.frequency}
                                                   </span>
                                                 )}
@@ -1646,9 +1667,11 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                           {isExpanded && (
                                             <div className="border-t border-neutral-200 p-4 bg-white space-y-4">
                                               <div>
-                                                <p className="text-neutral-700 leading-relaxed">
-                                                  {item.specific_recommendation}
-                                                </p>
+                                                <ExpandableText
+                                                  text={item.specific_recommendation}
+                                                  maxLines={isMobile ? 3 : 5}
+                                                  className="text-sm text-neutral-700 leading-relaxed"
+                                                />
                                               </div>
                                               
                                               {item.reasoning && (
@@ -1657,7 +1680,11 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                                     <Info className="h-3 w-3 mr-1" />
                                                     Why this helps
                                                   </h6>
-                                                  <p className="text-sm text-neutral-600">{item.reasoning}</p>
+                                                  <ExpandableText
+                                                    text={item.reasoning}
+                                                    maxLines={2}
+                                                    className="text-sm text-neutral-600"
+                                                  />
                                                 </div>
                                               )}
                                               
@@ -1697,7 +1724,11 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                                     <TrendingUp className="h-3 w-3 mr-1" />
                                                     Expected benefits
                                                   </h6>
-                                                  <p className="text-sm text-neutral-600">{item.expected_benefits}</p>
+                                                  <ExpandableText
+                                                    text={item.expected_benefits}
+                                                    maxLines={2}
+                                                    className="text-sm text-neutral-600"
+                                                  />
                                                 </div>
                                               )}
                                             </div>
@@ -1795,9 +1826,9 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
           <div className="space-y-6">
             {/* Health Score Overview */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.1 }}
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+              animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.1 }}
             >
               <Card className={`p-4 ${getHealthScoreBackground(analysis.overall_health_score)} border`}>
                 <div className="text-center space-y-3">
@@ -1820,9 +1851,9 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
 
             {/* Quick Actions */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+              animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.2 }}
             >
               <Card className="p-6">
                 <h3 className="text-lg font-medium text-neutral-800 mb-4">Quick Actions</h3>
@@ -1897,9 +1928,9 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
 
             {/* Analysis Details */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+              animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.3 }}
             >
               <Card className="p-6">
                 <h3 className="text-lg font-medium text-neutral-800 mb-6">
@@ -1931,9 +1962,9 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
 
         {/* Disclaimers - Full Width */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
+          initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+          animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+          transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.4 }}
           className="mt-8"
         >
           <Card className="p-6 bg-neutral-100">

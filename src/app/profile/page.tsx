@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/components/auth/AuthProvider'
@@ -19,6 +19,8 @@ import {
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 import Input from '@/components/ui/Input'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 
 interface DemographicProfile {
   gender: 'male' | 'female' | 'other' | ''
@@ -44,6 +46,10 @@ interface DemographicProfile {
 export default function ProfilePage() {
   const { user, loading, session } = useAuth()
   const router = useRouter()
+  const breakpoint = useBreakpoint()
+  const prefersReducedMotion = useReducedMotion()
+  const isMobile = breakpoint === 'xs' || breakpoint === 'sm'
+  
   const [profile, setProfile] = useState<DemographicProfile>({
     gender: '',
     date_of_birth: '',
@@ -71,6 +77,9 @@ export default function ProfilePage() {
   const [newCondition, setNewCondition] = useState('')
   const [newMedication, setNewMedication] = useState('')
   const [newAllergy, setNewAllergy] = useState('')
+  
+  // Track if profile has been loaded to prevent multiple fetches
+  const profileLoadedRef = useRef(false)
 
   useEffect(() => {
     if (loading) return
@@ -79,10 +88,15 @@ export default function ProfilePage() {
       router.push('/auth/signin')
       return
     }
+    
+    // Prevent multiple profile loads
+    if (profileLoadedRef.current) return
 
     // Load existing profile data
     const loadProfile = async () => {
       try {
+        // Mark as loaded to prevent duplicate requests
+        profileLoadedRef.current = true
         setIsLoading(true)
         setError('')
         
@@ -106,7 +120,28 @@ export default function ProfilePage() {
         if (response.ok) {
           const data = await response.json()
           if (data.profile) {
-            setProfile(data.profile)
+            // Normalize null values to empty strings for controlled inputs
+            const normalizedProfile = {
+              gender: data.profile.gender || '',
+              date_of_birth: data.profile.date_of_birth || '',
+              ethnicity: data.profile.ethnicity || '',
+              bmi: data.profile.bmi,
+              health_conditions: data.profile.health_conditions || [],
+              medications: data.profile.medications || [],
+              lifestyle_factors: {
+                exercise_frequency: data.profile.lifestyle_factors?.exercise_frequency || '',
+                diet_type: data.profile.lifestyle_factors?.diet_type || '',
+                smoking_status: data.profile.lifestyle_factors?.smoking_status || '',
+                alcohol_consumption: data.profile.lifestyle_factors?.alcohol_consumption || '',
+                stress_level: data.profile.lifestyle_factors?.stress_level || ''
+              },
+              supplement_preferences: {
+                preferred_forms: data.profile.supplement_preferences?.preferred_forms || [],
+                allergies: data.profile.supplement_preferences?.allergies || [],
+                budget_range: data.profile.supplement_preferences?.budget_range || ''
+              }
+            }
+            setProfile(normalizedProfile)
           }
         } else {
           throw new Error('Failed to load profile')
@@ -114,13 +149,15 @@ export default function ProfilePage() {
       } catch (error) {
         console.error('Failed to load profile:', error)
         setError('Failed to load profile data')
+        // Reset ref on error to allow retry
+        profileLoadedRef.current = false
       } finally {
         setIsLoading(false)
       }
     }
 
     loadProfile()
-  }, [user, loading, session, router])
+  }, [user, loading, router])
 
   const handleSave = async () => {
     setIsSaving(true)
@@ -252,51 +289,57 @@ export default function ProfilePage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
+          initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+          animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+          transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8 }}
           className="mb-8"
         >
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-light text-neutral-800 mb-2">
+              <h1 className="text-2xl sm:text-3xl font-light text-neutral-800 mb-2">
                 Profile Settings
               </h1>
-              <p className="text-neutral-600">
+              <p className="text-sm sm:text-base text-neutral-600">
                 Manage your health information for personalized recommendations
               </p>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 sm:space-x-3">
               {isEditing ? (
                 <>
                   <Button
                     variant="outline"
                     onClick={() => setIsEditing(false)}
                     disabled={isSaving}
+                    size="sm"
+                    className="text-sm"
                   >
                     Cancel
                   </Button>
                   <Button
                     onClick={handleSave}
                     disabled={isSaving}
+                    size="sm"
+                    className="text-sm"
                   >
                     {isSaving ? (
                       <>
-                        <Save className="h-4 w-4 mr-2 animate-pulse" />
-                        Saving...
+                        <Save className="h-4 w-4 mr-1 sm:mr-2 animate-pulse" />
+                        <span className="hidden sm:inline">Saving...</span>
+                        <span className="sm:hidden">Save</span>
                       </>
                     ) : (
                       <>
-                        <Save className="h-4 w-4 mr-2" />
-                        Save Changes
+                        <Save className="h-4 w-4 mr-1 sm:mr-2" />
+                        <span>Save</span>
                       </>
                     )}
                   </Button>
                 </>
               ) : (
-                <Button onClick={() => setIsEditing(true)}>
-                  <Edit3 className="h-4 w-4 mr-2" />
-                  Edit Profile
+                <Button onClick={() => setIsEditing(true)} size="sm">
+                  <Edit3 className="h-4 w-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Edit Profile</span>
+                  <span className="sm:hidden">Edit</span>
                 </Button>
               )}
             </div>
@@ -310,13 +353,13 @@ export default function ProfilePage() {
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
+          {/* Main Content - order-1 on mobile and desktop */}
+          <div className="order-1 lg:col-span-2 space-y-8">
             {/* Basic Information */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.1 }}
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+              animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.1 }}
             >
               <Card className="p-8">
                 <h3 className="text-xl font-medium text-neutral-800 mb-6 flex items-center">
@@ -329,7 +372,7 @@ export default function ProfilePage() {
                       Name
                     </label>
                     <Input
-                      value={user.name}
+                      value={user.name || ''}
                       disabled
                       className="bg-neutral-50"
                     />
@@ -339,7 +382,7 @@ export default function ProfilePage() {
                       Email
                     </label>
                     <Input
-                      value={user.email}
+                      value={user.email || ''}
                       disabled
                       className="bg-neutral-50"
                     />
@@ -406,9 +449,9 @@ export default function ProfilePage() {
 
             {/* Health Conditions */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+              animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.2 }}
             >
               <Card className="p-8">
                 <h3 className="text-xl font-medium text-neutral-800 mb-6 flex items-center">
@@ -418,12 +461,13 @@ export default function ProfilePage() {
                 <div className="space-y-4">
                   <div className="flex flex-wrap gap-2">
                     {profile.health_conditions.map((condition, index) => (
-                      <div key={index} className="flex items-center bg-red-50 text-red-700 px-3 py-1 rounded-full text-sm">
-                        <span>{condition}</span>
+                      <div key={index} className="flex items-center bg-red-50 text-red-700 px-3 py-2 rounded-full text-sm">
+                        <span className="mr-2">{condition}</span>
                         {isEditing && (
                           <button
                             onClick={() => removeHealthCondition(index)}
-                            className="ml-2 text-red-500 hover:text-red-700"
+                            className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 min-w-[24px] min-h-[24px] flex items-center justify-center"
+                            aria-label={`Remove ${condition}`}
                           >
                             <Trash2 className="h-3 w-3" />
                           </button>
@@ -432,14 +476,15 @@ export default function ProfilePage() {
                     ))}
                   </div>
                   {isEditing && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 mt-3">
                       <Input
                         value={newCondition}
                         onChange={(e) => setNewCondition(e.target.value)}
                         placeholder="Add health condition..."
-                        onKeyPress={(e) => e.key === 'Enter' && addHealthCondition()}
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addHealthCondition())}
+                        className="flex-1"
                       />
-                      <Button onClick={addHealthCondition} size="sm">
+                      <Button onClick={addHealthCondition} size="sm" className="flex-shrink-0">
                         Add
                       </Button>
                     </div>
@@ -450,9 +495,9 @@ export default function ProfilePage() {
 
             {/* Medications */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+              animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.3 }}
             >
               <Card className="p-8">
                 <h3 className="text-xl font-medium text-neutral-800 mb-6">
@@ -461,12 +506,13 @@ export default function ProfilePage() {
                 <div className="space-y-4">
                   <div className="flex flex-wrap gap-2">
                     {profile.medications.map((medication, index) => (
-                      <div key={index} className="flex items-center bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
-                        <span>{medication}</span>
+                      <div key={index} className="flex items-center bg-blue-50 text-blue-700 px-3 py-2 rounded-full text-sm">
+                        <span className="mr-2">{medication}</span>
                         {isEditing && (
                           <button
                             onClick={() => removeMedication(index)}
-                            className="ml-2 text-blue-500 hover:text-blue-700"
+                            className="text-blue-500 hover:text-blue-700 p-1 rounded-full hover:bg-blue-100 min-w-[24px] min-h-[24px] flex items-center justify-center"
+                            aria-label={`Remove ${medication}`}
                           >
                             <Trash2 className="h-3 w-3" />
                           </button>
@@ -475,14 +521,15 @@ export default function ProfilePage() {
                     ))}
                   </div>
                   {isEditing && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 mt-3">
                       <Input
                         value={newMedication}
                         onChange={(e) => setNewMedication(e.target.value)}
                         placeholder="Add medication..."
-                        onKeyPress={(e) => e.key === 'Enter' && addMedication()}
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addMedication())}
+                        className="flex-1"
                       />
-                      <Button onClick={addMedication} size="sm">
+                      <Button onClick={addMedication} size="sm" className="flex-shrink-0">
                         Add
                       </Button>
                     </div>
@@ -493,9 +540,9 @@ export default function ProfilePage() {
 
             {/* Lifestyle Factors */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+              animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.4 }}
             >
               <Card className="p-8">
                 <h3 className="text-xl font-medium text-neutral-800 mb-6">
@@ -590,13 +637,13 @@ export default function ProfilePage() {
             </motion.div>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
+          {/* Sidebar - order-2 on mobile (appears below), order-2 on desktop (appears right) */}
+          <div className="order-2 space-y-6">
             {/* Privacy Notice */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.5 }}
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+              animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.5 }}
             >
               <Card className="p-6 bg-primary-50/50">
                 <div className="flex items-start space-x-3">
@@ -617,9 +664,9 @@ export default function ProfilePage() {
 
             {/* Supplement Preferences */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+              animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.6 }}
             >
               <Card className="p-6">
                 <h3 className="text-lg font-medium text-neutral-800 mb-6">
@@ -653,12 +700,13 @@ export default function ProfilePage() {
                     <div className="space-y-2">
                       <div className="flex flex-wrap gap-2">
                         {profile.supplement_preferences.allergies.map((allergy, index) => (
-                          <div key={index} className="flex items-center bg-orange-50 text-orange-700 px-3 py-1 rounded-full text-sm">
-                            <span>{allergy}</span>
+                          <div key={index} className="flex items-center bg-orange-50 text-orange-700 px-3 py-2 rounded-full text-sm">
+                            <span className="mr-2">{allergy}</span>
                             {isEditing && (
                               <button
                                 onClick={() => removeAllergy(index)}
-                                className="ml-2 text-orange-500 hover:text-orange-700"
+                                className="text-orange-500 hover:text-orange-700 p-1 rounded-full hover:bg-orange-100 min-w-[24px] min-h-[24px] flex items-center justify-center"
+                                aria-label={`Remove ${allergy}`}
                               >
                                 <Trash2 className="h-3 w-3" />
                               </button>
@@ -667,14 +715,15 @@ export default function ProfilePage() {
                         ))}
                       </div>
                       {isEditing && (
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 mt-3">
                           <Input
                             value={newAllergy}
                             onChange={(e) => setNewAllergy(e.target.value)}
                             placeholder="Add allergy..."
-                            onKeyPress={(e) => e.key === 'Enter' && addAllergy()}
+                            onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addAllergy())}
+                            className="flex-1"
                           />
-                          <Button onClick={addAllergy} size="sm">
+                          <Button onClick={addAllergy} size="sm" className="flex-shrink-0">
                             Add
                           </Button>
                         </div>
@@ -687,9 +736,9 @@ export default function ProfilePage() {
 
             {/* Data Management */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.7 }}
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+              animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.7 }}
             >
               <Card className="p-6">
                 <h3 className="text-lg font-medium text-neutral-800 mb-6">

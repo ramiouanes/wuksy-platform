@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation'
 import Header from './Header'
 import Footer from './Footer'
+import BottomNav from './BottomNav'
 
 export default function ConditionalLayout({
   children,
@@ -25,10 +26,11 @@ export default function ConditionalLayout({
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="flex-1">
+        <main className="flex-1 pb-16 md:pb-0">
           {children}
         </main>
         <Footer />
+        <BottomNav />
       </div>
     )
   }

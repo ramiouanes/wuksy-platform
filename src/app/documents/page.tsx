@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/components/auth/AuthProvider'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { 
   FileText, 
   Activity, 
@@ -40,6 +42,9 @@ interface DocumentWithAnalysis extends DocumentWithBiomarkers {
 export default function DocumentsPage() {
   const { user, loading, session } = useAuth()
   const router = useRouter()
+  const breakpoint = useBreakpoint()
+  const prefersReducedMotion = useReducedMotion()
+  const isMobile = breakpoint === 'xs' || breakpoint === 'sm'
   const [documents, setDocuments] = useState<DocumentWithAnalysis[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [analyzingDocuments, setAnalyzingDocuments] = useState<Set<string>>(new Set())
@@ -47,6 +52,8 @@ export default function DocumentsPage() {
   const [analysisStatus, setAnalysisStatus] = useState<{[key: string]: string}>({})
   const [analysisDetails, setAnalysisDetails] = useState<{[key: string]: any}>({})
   const [expandedReasoning, setExpandedReasoning] = useState<{[key: string]: boolean}>({})
+  const [expandedAnalysis, setExpandedAnalysis] = useState<{[key: string]: boolean}>({})
+  const [expandedBiomarkers, setExpandedBiomarkers] = useState<{[key: string]: boolean}>({})
 
   const [analysisAbortControllers, setAnalysisAbortControllers] = useState<{[key: string]: AbortController}>({})
 
@@ -515,12 +522,12 @@ export default function DocumentsPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
+          initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+          animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+          transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8 }}
           className="mb-8"
         >
           <div className="flex items-center space-x-4 mb-6">
@@ -528,8 +535,8 @@ export default function DocumentsPage() {
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div>
-              <h1 className="text-3xl font-light text-neutral-800">Your Documents</h1>
-              <p className="text-neutral-600 mt-1">
+              <h1 className="text-2xl sm:text-3xl font-light text-neutral-800">Your Documents</h1>
+              <p className="text-sm sm:text-base text-neutral-600 mt-1">
                 View your uploaded blood tests and their biomarker extractions
               </p>
             </div>
@@ -557,46 +564,63 @@ export default function DocumentsPage() {
             return (
               <motion.div
                 key={document.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: index * 0.1 }}
+                initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+                animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+                transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: index * 0.1 }}
               >
-                <Card className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      {/* Document Header */}
-                      <div className="flex items-center space-x-4 mb-4">
-                        <div className="bg-primary-50 p-3 rounded-lg">
-                          <FileText className="h-6 w-6 text-primary-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-medium text-neutral-800 mb-1">
-                            {document.filename}
-                          </h3>
-                          <div className="flex items-center space-x-4 text-sm text-neutral-600">
-                            <span className="flex items-center">
-                              <Calendar className="h-4 w-4 mr-1" />
-                              {formatDate(document.uploaded_at)}
-                            </span>
-                            <span>{formatFileSize(document.filesize)}</span>
-                            <div className={`flex items-center px-2 py-1 rounded-full ${status.bgColor}`}>
-                              <StatusIcon className={`h-3 w-3 mr-1 ${status.color}`} />
-                              <span className={`text-xs font-medium ${status.color}`}>
-                                {status.text}
-                              </span>
-                            </div>
-                          </div>
+                <Card className="p-4 sm:p-6">
+                  {/* Document Header */}
+                  <div className="flex items-center space-x-4 mb-4">
+                    <div className="bg-primary-50 p-3 rounded-lg flex-shrink-0">
+                      <FileText className="h-6 w-6 text-primary-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base sm:text-lg font-medium text-neutral-800 mb-1 truncate">
+                        {document.filename}
+                      </h3>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-neutral-600">
+                        <span className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-1 flex-shrink-0" />
+                          <span className="truncate">{formatDate(document.uploaded_at)}</span>
+                        </span>
+                        <span className="hidden sm:inline">{formatFileSize(document.filesize)}</span>
+                        <div className={`flex items-center px-2 py-1 rounded-full w-fit ${status.bgColor}`}>
+                          <StatusIcon className={`h-3 w-3 mr-1 ${status.color}`} />
+                          <span className={`text-xs font-medium ${status.color}`}>
+                            {status.text}
+                          </span>
                         </div>
                       </div>
+                    </div>
+                  </div>
 
-                      {/* Biomarkers Summary */}
-                      {document.biomarker_readings.length > 0 && (
-                        <div className="mb-4">
-                          <h4 className="text-sm font-medium text-neutral-700 mb-2">
-                            Extracted Biomarkers ({document.biomarker_readings.length})
-                          </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {document.biomarker_readings.slice(0, 6).map((biomarker, idx) => (
+                  {/* Biomarkers Summary */}
+                  {document.biomarker_readings.length > 0 && (
+                    <div className="mb-4">
+                      <button
+                        onClick={() => setExpandedBiomarkers(prev => ({
+                          ...prev,
+                          [document.id]: !prev[document.id]
+                        }))}
+                        className="w-full text-left flex items-center justify-between mb-2 sm:cursor-default"
+                        aria-expanded={isMobile ? expandedBiomarkers[document.id] : true}
+                        aria-label={expandedBiomarkers[document.id] ? 'Collapse biomarkers' : 'Expand biomarkers'}
+                      >
+                        <h4 className="text-sm font-medium text-neutral-700">
+                          Extracted Biomarkers ({document.biomarker_readings.length})
+                        </h4>
+                        {isMobile && (
+                          <ChevronDown 
+                            className={`h-4 w-4 transition-transform ${
+                              expandedBiomarkers[document.id] ? 'rotate-180' : ''
+                            }`}
+                            aria-hidden="true"
+                          />
+                        )}
+                      </button>
+                      {(expandedBiomarkers[document.id] || !isMobile) && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {document.biomarker_readings.slice(0, isMobile && expandedBiomarkers[document.id] ? document.biomarker_readings.length : isMobile ? 0 : 6).map((biomarker, idx) => (
                               <div key={idx} className="bg-neutral-50 px-3 py-2 rounded-lg">
                                 <div className="flex justify-between items-center">
                                   <span className="text-sm font-medium text-neutral-800">
@@ -621,191 +645,219 @@ export default function DocumentsPage() {
                                 </div>
                               </div>
                             ))}
-                            {document.biomarker_readings.length > 6 && (
-                              <div className="bg-neutral-50 px-3 py-2 rounded-lg flex items-center justify-center text-sm text-neutral-600">
-                                +{document.biomarker_readings.length - 6} more
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Analysis Summary */}
-                      {document.analysis && (
-                        <div className="bg-gradient-to-r from-primary-50 to-sage-50 p-4 rounded-lg">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h4 className="text-sm font-medium text-neutral-800 mb-1">
-                                Health Analysis Available
-                              </h4>
-                              <div className="flex items-center space-x-4 text-sm text-neutral-600">
-                                <span>Score: {document.analysis.overall_health_score}/100</span>
-                                <span className="capitalize">{document.analysis.health_category}</span>
-                                <span>{formatDate(document.analysis.created_at)}</span>
-                              </div>
-                            </div>
-                            <Link href={`/analysis/${document.analysis.id}`}>
-                              <Button variant="outline" size="sm">
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Analysis
-                              </Button>
-                            </Link>
-                          </div>
                         </div>
                       )}
                     </div>
+                  )}
 
-                    {/* Action Buttons */}
-                    <div className="ml-6 flex flex-col space-y-2">
-                      {!document.analysis && document.status === 'completed' && document.biomarker_readings.length > 0 && (
-                        <div className="space-y-2">
-                          {/* Launch Analysis Button or Progress Display */}
-                          {!analyzingDocuments.has(document.id) ? (
-                            <Button
-                              onClick={() => startAnalysis(document.id)}
-                              className="whitespace-nowrap w-full"
-                            >
-                              <Play className="mr-2 h-4 w-4" />
-                              Launch Analysis
-                            </Button>
-                          ) : (
-                            <div className="space-y-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100 min-h-[12rem] flex flex-col justify-between">
-                              {/* Main Progress Content */}
-                              <div className="space-y-3 flex-1">
-                                {/* Progress Header */}
-                                <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-2">
-                                  {(() => {
-                                    const stage = analysisDetails[document.id]?.stage || 'initializing'
-                                    const stageInfo = getAnalysisStageIcon(stage)
-                                    const StageIcon = stageInfo.icon
-                                    return (
-                                      <>
-                                        <StageIcon className={`h-4 w-4 ${stageInfo.color} animate-pulse`} />
-                                        <span className="text-sm font-medium text-neutral-700">
-                                          Analysis in Progress
-                                        </span>
-                                      </>
-                                    )
-                                  })()}
-                                </div>
-                                <span className="text-xs text-neutral-500">
-                                  {analysisProgress[document.id] || 0}%
-                                </span>
-                              </div>
-
-                              {/* Progress Bar */}
-                              <div className="w-full bg-neutral-200 rounded-full h-2">
-                                <div
-                                  className="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full transition-all duration-500 ease-out"
-                                  style={{ width: `${analysisProgress[document.id] || 0}%` }}
-                                />
-                              </div>
-
-                              {/* Current Status */}
-                              <div className="space-y-1 min-h-[2.5rem]">
-                                <div className="text-xs text-neutral-600 font-medium">
-                                  {(() => {
-                                    const stage = analysisDetails[document.id]?.stage || 'initializing'
-                                    const stageInfo = getAnalysisStageIcon(stage)
-                                    return stageInfo.description
-                                  })()}
-                                </div>
-                                
-                                {/* AI Reasoning Section - Collapsible */}
-                                {analysisStatus[document.id] && (analysisStatus[document.id].includes('🧠') || analysisStatus[document.id].includes('**')) ? (
-                                  <div className="text-xs">
-                                    {(() => {
-                                      const reasoningText = analysisStatus[document.id]
-                                      // Clean up the text by removing prefixes
-                                      const cleanText = reasoningText.replace(/^🧠\s*(AI:\s*)?/, '').trim()
-                                      const { title, content } = parseReasoningText(cleanText)
-                                      const isExpanded = expandedReasoning[document.id]
-                                      
-                                      return (
-                                        <div className="border border-neutral-200 rounded bg-neutral-50/50">
-                                          <button
-                                            onClick={() => toggleReasoning(document.id)}
-                                            className="flex items-center justify-between w-full text-left p-2 hover:bg-neutral-100 rounded transition-colors"
-                                          >
-                                            <div className="flex items-center space-x-1">
-                                              <span>🧠</span>
-                                              <span className="text-neutral-600 font-medium">{title}</span>
-                                            </div>
-                                            <ChevronDown 
-                                              className={`w-3 h-3 text-neutral-400 transition-transform ${
-                                                isExpanded ? 'rotate-180' : ''
-                                              }`}
-                                            />
-                                          </button>
-                                          {isExpanded && (
-                                            <div className="px-2 pb-2 text-neutral-500 text-xs border-t border-neutral-200 pt-2 max-h-32 overflow-y-auto">
-                                              {content}
-                                            </div>
-                                          )}
-                                        </div>
-                                      )
-                                    })()}
-                                  </div>
-                                ) : (
-                                  <div className="text-xs text-neutral-500">
-                                    {analysisStatus[document.id] || 'Starting analysis...'}
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Analysis Details */}
-                              {analysisDetails[document.id] && Object.keys(analysisDetails[document.id]).length > 1 && (
-                                <div className="flex flex-wrap gap-2 text-xs">
-                                  {analysisDetails[document.id].biomarkersCount && (
-                                    <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full">
-                                      {analysisDetails[document.id].biomarkersCount} biomarkers
-                                    </span>
-                                  )}
-                                  {analysisDetails[document.id].insights && (
-                                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full">
-                                      {analysisDetails[document.id].insights} insights
-                                    </span>
-                                  )}
-                                  {analysisDetails[document.id].supplements && (
-                                    <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-full">
-                                      {analysisDetails[document.id].supplements} supplements
-                                    </span>
-                                  )}
-                                  {analysisDetails[document.id].healthScore && (
-                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
-                                      Score: {analysisDetails[document.id].healthScore}/100
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                              </div>
-
-                              {/* Cancel Button */}
-                              <Button
-                                onClick={() => cancelAnalysis(document.id)}
-                                variant="outline"
-                                size="sm"
-                                className="w-full text-xs"
-                              >
-                                <X className="mr-1 h-3 w-3" />
-                                Cancel Analysis
-                              </Button>
+                  {/* Analysis Summary */}
+                  {document.analysis && (
+                    <div className="bg-gradient-to-r from-primary-50 to-sage-50 p-4 rounded-lg mb-4">
+                      <button
+                        onClick={() => setExpandedAnalysis(prev => ({
+                          ...prev,
+                          [document.id]: !prev[document.id]
+                        }))}
+                        className="w-full text-left flex items-center justify-between sm:cursor-default"
+                        aria-expanded={isMobile ? expandedAnalysis[document.id] : true}
+                        aria-label={expandedAnalysis[document.id] ? 'Collapse analysis details' : 'Expand analysis details'}
+                      >
+                        <div>
+                          <h4 className="text-sm font-medium text-neutral-800 mb-1">
+                            Health Analysis Available
+                          </h4>
+                          {isMobile && !expandedAnalysis[document.id] && (
+                            <div className="text-xs text-neutral-600">
+                              Tap to view details
                             </div>
                           )}
                         </div>
-                      )}
-
-                      {document.analysis && (
-                        <Link href={`/analysis/${document.analysis.id}`}>
-                          <Button variant="outline">
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Results
-                          </Button>
-                        </Link>
+                        {isMobile && (
+                          <ChevronDown 
+                            className={`h-4 w-4 transition-transform ${
+                              expandedAnalysis[document.id] ? 'rotate-180' : ''
+                            }`}
+                            aria-hidden="true"
+                          />
+                        )}
+                      </button>
+                      
+                      {(expandedAnalysis[document.id] || !isMobile) && (
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-3 gap-3">
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-neutral-600">
+                            <span>Score: {document.analysis.overall_health_score}/100</span>
+                            <span className="capitalize">{document.analysis.health_category}</span>
+                            <span className="hidden sm:inline">{formatDate(document.analysis.created_at)}</span>
+                          </div>
+                          <Link href={`/analysis/${document.analysis.id}`} className="w-full sm:w-auto">
+                            <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                              <Eye className="mr-2 h-4 w-4" />
+                              <span className="hidden sm:inline">View Analysis</span>
+                              <span className="sm:hidden">View</span>
+                            </Button>
+                          </Link>
+                        </div>
                       )}
                     </div>
-                  </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  {!document.analysis && document.status === 'completed' && document.biomarker_readings.length > 0 && (
+                    <div>
+                      {/* Launch Analysis Button or Progress Display */}
+                      {!analyzingDocuments.has(document.id) ? (
+                        <Button
+                          onClick={() => startAnalysis(document.id)}
+                          className="w-full"
+                        >
+                          <Play className="mr-2 h-4 w-4" />
+                          Launch Analysis
+                        </Button>
+                      ) : (
+                        <div 
+                          className={`space-y-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100 ${
+                            isMobile ? 'min-h-[10rem]' : 'min-h-[12rem]'
+                          } flex flex-col justify-between`}
+                          aria-busy="true"
+                          aria-live="polite"
+                        >
+                          {/* Main Progress Content */}
+                          <div className="space-y-3 flex-1">
+                            {/* Progress Header */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
+                                {(() => {
+                                  const stage = analysisDetails[document.id]?.stage || 'initializing'
+                                  const stageInfo = getAnalysisStageIcon(stage)
+                                  const StageIcon = stageInfo.icon
+                                  return (
+                                    <>
+                                      <StageIcon className={`h-4 w-4 ${stageInfo.color} animate-pulse`} />
+                                      <span className="text-sm font-medium text-neutral-700">
+                                        Analysis in Progress
+                                      </span>
+                                    </>
+                                  )
+                                })()}
+                              </div>
+                              <span className="text-xs text-neutral-500">
+                                {analysisProgress[document.id] || 0}%
+                              </span>
+                            </div>
+
+                            {/* Progress Bar */}
+                            <div className="w-full bg-neutral-200 rounded-full h-2">
+                              <div
+                                className="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full transition-all duration-500 ease-out"
+                                style={{ width: `${analysisProgress[document.id] || 0}%` }}
+                              />
+                            </div>
+
+                            {/* Current Status */}
+                            <div className="space-y-1 min-h-[2.5rem]">
+                              <div className="text-xs text-neutral-600 font-medium">
+                                {(() => {
+                                  const stage = analysisDetails[document.id]?.stage || 'initializing'
+                                  const stageInfo = getAnalysisStageIcon(stage)
+                                  return stageInfo.description
+                                })()}
+                              </div>
+                              
+                              {/* AI Reasoning Section - Collapsible */}
+                              {analysisStatus[document.id] && (analysisStatus[document.id].includes('🧠') || analysisStatus[document.id].includes('**')) ? (
+                                <div className="text-xs">
+                                  {(() => {
+                                    const reasoningText = analysisStatus[document.id]
+                                    // Clean up the text by removing prefixes
+                                    const cleanText = reasoningText.replace(/^🧠\s*(AI:\s*)?/, '').trim()
+                                    const { title, content } = parseReasoningText(cleanText)
+                                    const isExpanded = expandedReasoning[document.id]
+                                    
+                                    return (
+                                      <div className="border border-neutral-200 rounded bg-neutral-50/50">
+                                        <button
+                                          onClick={() => toggleReasoning(document.id)}
+                                          className="flex items-center justify-between w-full text-left p-2 hover:bg-neutral-100 rounded transition-colors"
+                                          aria-expanded={isExpanded}
+                                          aria-label={isExpanded ? `Collapse AI reasoning: ${title}` : `Expand AI reasoning: ${title}`}
+                                        >
+                                          <div className="flex items-center space-x-1">
+                                            <span>🧠</span>
+                                            <span className="text-neutral-600 font-medium">{title}</span>
+                                          </div>
+                                          <ChevronDown 
+                                            className={`w-3 h-3 text-neutral-400 transition-transform ${
+                                              isExpanded ? 'rotate-180' : ''
+                                            }`}
+                                            aria-hidden="true"
+                                          />
+                                        </button>
+                                        {isExpanded && (
+                                          <div className="px-2 pb-2 text-neutral-500 text-xs border-t border-neutral-200 pt-2 max-h-32 overflow-y-auto">
+                                            {content}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )
+                                  })()}
+                                </div>
+                              ) : (
+                                <div className="text-xs text-neutral-500">
+                                  {analysisStatus[document.id] || 'Starting analysis...'}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Analysis Details */}
+                            {analysisDetails[document.id] && Object.keys(analysisDetails[document.id]).length > 1 && (
+                              <div className="flex flex-wrap gap-2 text-xs">
+                                {analysisDetails[document.id].biomarkersCount && (
+                                  <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full">
+                                    {analysisDetails[document.id].biomarkersCount} biomarkers
+                                  </span>
+                                )}
+                                {analysisDetails[document.id].insights && (
+                                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full">
+                                    {analysisDetails[document.id].insights} insights
+                                  </span>
+                                )}
+                                {analysisDetails[document.id].supplements && (
+                                  <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-full">
+                                    {analysisDetails[document.id].supplements} supplements
+                                  </span>
+                                )}
+                                {analysisDetails[document.id].healthScore && (
+                                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                                    Score: {analysisDetails[document.id].healthScore}/100
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Cancel Button */}
+                          <Button
+                            onClick={() => cancelAnalysis(document.id)}
+                            variant="outline"
+                            size="sm"
+                            className="w-full text-xs"
+                          >
+                            <X className="mr-1 h-3 w-3" />
+                            Cancel Analysis
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {document.analysis && (
+                    <Link href={`/analysis/${document.analysis.id}`} className="block">
+                      <Button variant="outline" className="w-full">
+                        <Eye className="mr-2 h-4 w-4" />
+                        View Results
+                      </Button>
+                    </Link>
+                  )}
                 </Card>
               </motion.div>
             )
@@ -814,9 +866,9 @@ export default function DocumentsPage() {
           {/* Empty State */}
           {documents.length === 0 && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+              animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8 }}
               className="text-center py-16"
             >
               <div className="bg-primary-50 p-4 rounded-full w-16 h-16 mx-auto mb-6 flex items-center justify-center">

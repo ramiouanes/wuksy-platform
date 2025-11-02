@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDropzone } from 'react-dropzone'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/components/auth/AuthProvider'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { 
   Upload, 
   FileText, 
@@ -46,9 +48,22 @@ interface UploadedFile {
 export default function UploadPage() {
   const { user, session } = useAuth()
   const router = useRouter()
+  const breakpoint = useBreakpoint()
+  const prefersReducedMotion = useReducedMotion()
+  const isMobile = breakpoint === 'xs' || breakpoint === 'sm'
+  
   const [files, setFiles] = useState<UploadedFile[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [expandedReasoning, setExpandedReasoning] = useState<{[key: string]: boolean}>({})
+
+  // Collapse AI reasoning by default on mobile, expand on desktop
+  useEffect(() => {
+    files.forEach(fileObj => {
+      if (!isMobile && fileObj.aiMetrics?.thoughtProcess) {
+        setExpandedReasoning(prev => ({ ...prev, [fileObj.id]: true }))
+      }
+    })
+  }, [files, isMobile])
 
   // Helper function to extract title and content from reasoning text
   const parseReasoningText = (text: string) => {
@@ -345,15 +360,15 @@ export default function UploadPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
+          initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+          animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+          transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8 }}
           className="text-center mb-12"
         >
-          <h1 className="text-3xl font-light text-neutral-800 mb-4">
+          <h1 className="text-2xl sm:text-3xl font-light text-neutral-800 mb-4">
             Upload Your Blood Test Results
           </h1>
-          <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-neutral-600 max-w-2xl mx-auto">
             Share your blood test documents with us. Our AI will carefully analyze 
             your biomarkers and provide personalized wellness insights.
           </p>
@@ -361,41 +376,41 @@ export default function UploadPage() {
 
         {/* Upload Instructions */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.1 }}
+          initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+          animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+          transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.1 }}
           className="mb-8"
         >
           <Card className="p-6">
             <h3 className="text-lg font-medium text-neutral-800 mb-4">
               Supported Formats
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div className="flex items-center space-x-3">
-                <div className="bg-primary-50 p-2 rounded-lg">
+                <div className="bg-primary-50 p-2 rounded-lg flex-shrink-0">
                   <FileText className="h-5 w-5 text-primary-600" />
                 </div>
-                <div>
-                  <div className="font-medium text-neutral-800">PDF Documents</div>
-                  <div className="text-sm text-neutral-600">Lab reports, test results</div>
+                <div className="min-w-0">
+                  <div className="font-medium text-neutral-800 text-sm sm:text-base">PDF Documents</div>
+                  <div className="text-xs sm:text-sm text-neutral-600 truncate">Lab reports, test results</div>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <div className="bg-stone-50 p-2 rounded-lg">
+                <div className="bg-stone-50 p-2 rounded-lg flex-shrink-0">
                   <Camera className="h-5 w-5 text-stone-600" />
                 </div>
-                <div>
-                  <div className="font-medium text-neutral-800">Photos</div>
-                  <div className="text-sm text-neutral-600">Clear, readable images</div>
+                <div className="min-w-0">
+                  <div className="font-medium text-neutral-800 text-sm sm:text-base">Photos</div>
+                  <div className="text-xs sm:text-sm text-neutral-600 truncate">Clear, readable images</div>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <div className="bg-sage-50 p-2 rounded-lg">
+                <div className="bg-sage-50 p-2 rounded-lg flex-shrink-0">
                   <Monitor className="h-5 w-5 text-sage-600" />
                 </div>
-                <div>
-                  <div className="font-medium text-neutral-800">Screenshots</div>
-                  <div className="text-sm text-neutral-600">Digital lab portals</div>
+                <div className="min-w-0">
+                  <div className="font-medium text-neutral-800 text-sm sm:text-base">Screenshots</div>
+                  <div className="text-xs sm:text-sm text-neutral-600 truncate">Digital lab portals</div>
                 </div>
               </div>
             </div>
@@ -404,15 +419,15 @@ export default function UploadPage() {
 
         {/* Upload Area */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
+          initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+          animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+          transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.2 }}
           className="mb-8"
         >
-          <Card className="p-8">
+          <Card className="p-4 sm:p-6 md:p-8">
             <div
               {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors cursor-pointer ${
+              className={`border-2 border-dashed rounded-lg p-6 sm:p-8 md:p-12 text-center transition-colors cursor-pointer ${
                 isDragActive
                   ? 'border-primary-400 bg-primary-50'
                   : 'border-neutral-300 hover:border-primary-300 hover:bg-neutral-50'
@@ -421,18 +436,18 @@ export default function UploadPage() {
               <input {...getInputProps()} />
               <div className="space-y-4">
                 <div className="flex justify-center">
-                  <div className="bg-primary-100 p-6 rounded-full">
-                    <Upload className="h-12 w-12 text-primary-600" />
+                  <div className="bg-primary-100 p-4 sm:p-6 rounded-full">
+                    <Upload className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-primary-600" />
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-xl font-medium text-neutral-800 mb-2">
+                  <h3 className="text-lg sm:text-xl font-medium text-neutral-800 mb-2">
                     {isDragActive ? 'Drop your files here' : 'Upload your blood test results'}
                   </h3>
-                  <p className="text-neutral-600">
+                  <p className="text-sm sm:text-base text-neutral-600">
                     Drag and drop your files here, or click to browse
                   </p>
-                  <p className="text-sm text-neutral-500 mt-2">
+                  <p className="text-xs sm:text-sm text-neutral-500 mt-2">
                     Supports PDF, JPG, PNG up to 10MB each
                   </p>
                 </div>
@@ -444,20 +459,21 @@ export default function UploadPage() {
         {/* File List */}
         {files.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+            animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.3 }}
             className="mb-8"
           >
             <Card className="p-6">
               <h3 className="text-lg font-medium text-neutral-800 mb-6">
                 Uploaded Files ({files.length})
               </h3>
-              <div className="space-y-4">
+              <div className="space-y-4" aria-live="polite" aria-atomic="false">
                 {files.map((fileObj) => (
                   <div
                     key={fileObj.id}
                     className="flex items-center justify-between p-4 bg-neutral-50 rounded-lg"
+                    aria-busy={fileObj.status === 'uploading' || fileObj.status === 'processing'}
                   >
                     <div className="flex items-center space-x-4 w-full">
                       {getStatusIcon(fileObj.status)}
@@ -495,12 +511,15 @@ export default function UploadPage() {
                                           <button
                                             onClick={() => toggleReasoning(fileObj.id)}
                                             className="flex items-center justify-between w-full text-left hover:bg-neutral-100 rounded p-1 transition-colors"
+                                            aria-expanded={isExpanded}
+                                            aria-label={isExpanded ? `Collapse AI reasoning: ${title}` : `Expand AI reasoning: ${title}`}
                                           >
                                             <div className="text-neutral-600">💭 {title}</div>
                                             <ChevronDown 
                                               className={`w-3 h-3 text-neutral-400 transition-transform ${
                                                 isExpanded ? 'rotate-180' : ''
                                               }`}
+                                              aria-hidden="true"
                                             />
                                           </button>
                                           {isExpanded && (
@@ -538,6 +557,7 @@ export default function UploadPage() {
                       onClick={() => removeFile(fileObj.id)}
                       disabled={fileObj.status === 'uploading' || fileObj.status === 'processing'}
                       className="p-2 text-neutral-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                      aria-label={`Remove file ${fileObj.file.name}`}
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -551,9 +571,9 @@ export default function UploadPage() {
         {/* Upload Button */}
         {files.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+            animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.4 }}
             className="text-center"
           >
             <Button
@@ -582,9 +602,9 @@ export default function UploadPage() {
 
         {/* Privacy Notice */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.5 }}
+          initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+          animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+          transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.5 }}
           className="mt-12"
         >
           <Card className="p-6 bg-primary-50/50">

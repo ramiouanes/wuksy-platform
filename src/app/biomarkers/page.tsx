@@ -27,8 +27,11 @@ import {
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 import Input from '@/components/ui/Input'
+import { ExpandableText } from '@/components/ui/ExpandableText'
 import { EnrichedBiomarker, BiomarkersResponse } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useBreakpoint, isMobileBreakpoint } from '@/hooks/useBreakpoint'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 
 // Icon mapping for categories
 const categoryIcons: Record<string, any> = {
@@ -71,6 +74,9 @@ export default function BiomarkersPage() {
   
   const { user, session } = useAuth()
   const router = useRouter()
+  const breakpoint = useBreakpoint()
+  const prefersReducedMotion = useReducedMotion()
+  const isMobile = isMobileBreakpoint(breakpoint)
 
   // Fetch biomarkers data
   useEffect(() => {
@@ -217,9 +223,9 @@ export default function BiomarkersPage() {
       <section className="py-8 bg-gradient-to-br from-primary-50 to-secondary-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+            animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8 }}
             className="space-y-3"
           >
             <h1 className="text-2xl md:text-3xl font-light text-neutral-800">
@@ -237,22 +243,22 @@ export default function BiomarkersPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row gap-8">
             
-            {/* Main Content Area with Filters */}
-            <div className="flex-1 min-w-0">
+            {/* Main Content Area with Filters - shows first on mobile, left on desktop */}
+            <div className="order-1 lg:order-1 flex-1 min-w-0">
               
               {/* Search and Filter - Integrated */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.1 }}
+                initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+                animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+                transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.1 }}
                 className="mb-6 bg-white p-4 rounded-lg border border-neutral-200"
               >
                 <div className="space-y-4">
                   {/* Tab Filters */}
-                  <div className="flex items-center space-x-1 bg-neutral-100 p-1 rounded-lg w-fit">
+                  <div className="flex items-center space-x-1 bg-neutral-100 p-1 rounded-lg w-full sm:w-fit">
                     <button
                       onClick={() => setRatioFilter('all')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                      className={`flex-1 sm:flex-none px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                         ratioFilter === 'all' 
                           ? 'bg-white text-neutral-900 shadow-sm' 
                           : 'text-neutral-600 hover:text-neutral-900'
@@ -262,7 +268,7 @@ export default function BiomarkersPage() {
                     </button>
                     <button
                       onClick={() => setRatioFilter('ratio')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                      className={`flex-1 sm:flex-none px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                         ratioFilter === 'ratio' 
                           ? 'bg-white text-neutral-900 shadow-sm' 
                           : 'text-neutral-600 hover:text-neutral-900'
@@ -272,7 +278,7 @@ export default function BiomarkersPage() {
                     </button>
                     <button
                       onClick={() => setRatioFilter('non-ratio')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                      className={`flex-1 sm:flex-none px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                         ratioFilter === 'non-ratio' 
                           ? 'bg-white text-neutral-900 shadow-sm' 
                           : 'text-neutral-600 hover:text-neutral-900'
@@ -331,9 +337,9 @@ export default function BiomarkersPage() {
               return (
               <motion.div
                 key={biomarker.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.3 + index * 0.05 }}
+                initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+                animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+                transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.3 + index * 0.05 }}
               >
                   <Card className={`${isExpanded ? 'p-5' : 'p-4'} hover:shadow-md transition-all duration-200 border border-neutral-200 cursor-pointer`}
                         onClick={() => toggleBiomarkerExpansion(biomarker.id)}>
@@ -416,18 +422,20 @@ export default function BiomarkersPage() {
                   {/* Expanded Content - Streamlined */}
                   {isExpanded && (
                     <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3 }}
+                      initial={prefersReducedMotion ? {} : { opacity: 0, height: 0 }}
+                      animate={prefersReducedMotion ? {} : { opacity: 1, height: 'auto' }}
+                      exit={prefersReducedMotion ? {} : { opacity: 0, height: 0 }}
+                      transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.3 }}
                       className="space-y-4 pt-4 mt-4 border-t border-neutral-100"
                     >
                       {/* Full Description */}
                       {(biomarker.improved_description || biomarker.description) && (
                         <div>
-                          <p className="text-sm text-neutral-600 leading-relaxed">
-                            {biomarker.improved_description || biomarker.description}
-                          </p>
+                          <ExpandableText
+                            text={biomarker.improved_description || biomarker.description}
+                            maxLines={isMobile ? 3 : 5}
+                            className="text-sm text-neutral-600 leading-relaxed"
+                          />
                         </div>
                       )}
 
@@ -449,9 +457,11 @@ export default function BiomarkersPage() {
                           <div className="text-xs font-medium text-neutral-700 mb-1">
                             Clinical Significance
                           </div>
-                          <p className="text-xs text-neutral-600 leading-relaxed">
-                            {biomarker.clinical_significance}
-                          </p>
+                          <ExpandableText
+                            text={biomarker.clinical_significance}
+                            maxLines={isMobile ? 2 : 4}
+                            className="text-xs text-neutral-600 leading-relaxed"
+                          />
                         </div>
                       )}
 
@@ -518,9 +528,9 @@ export default function BiomarkersPage() {
 
           {filteredBiomarkers.length === 0 && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+              animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.3 }}
               className="text-center py-16"
             >
               <div className="bg-neutral-100 p-6 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
@@ -546,15 +556,15 @@ export default function BiomarkersPage() {
               
             </div> {/* End Main Content Area */}
             
-            {/* Right Sidebar with Range Guide and CTA */}
-            <div className="lg:w-80 flex-shrink-0 space-y-6">
+            {/* Right Sidebar with Range Guide and CTA - shows second on mobile (bottom), right on desktop */}
+            <div className="order-2 lg:order-2 lg:w-80 flex-shrink-0 space-y-6">
               
               {/* Range Guide */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.4 }}
-                className="zen-gradient p-5 rounded-lg sticky top-4"
+                initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+                animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+                transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.4 }}
+                className="zen-gradient p-5 rounded-lg lg:sticky lg:top-4"
               >
                 <div className="text-center mb-4">
                   <h2 className="text-lg font-light text-neutral-800 mb-2">
@@ -591,10 +601,10 @@ export default function BiomarkersPage() {
 
               {/* CTA Section */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.5 }}
-                className="zen-gradient p-5 rounded-lg text-center sticky top-72"
+                initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+                animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+                transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.5 }}
+                className="zen-gradient p-5 rounded-lg text-center lg:sticky lg:top-72"
               >
                 <div className="space-y-4">
                   <h2 className="text-lg font-light text-neutral-800">
