@@ -47,6 +47,17 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // Check for Bearer token authentication (for mobile app API access)
+  // If a valid Bearer token is present, let the API route handle JWT validation
+  const authHeader = request.headers.get('authorization')
+  const hasBearerToken = authHeader?.startsWith('Bearer ')
+  
+  if (hasBearerToken && pathname.startsWith('/api/')) {
+    // Has Bearer token - allow through to API route for JWT validation
+    // The API routes will validate the Supabase JWT token
+    return NextResponse.next()
+  }
+
   // Check if this is an admin route
   const isAdminRoute = pathname.startsWith('/admin') || pathname.startsWith('/api/admin/')
   
