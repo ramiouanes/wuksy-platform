@@ -21,3 +21,16 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Streaming endpoints - disable buffering
+[[headers]]
+  for = "/api/analysis/generate-streaming"
+  [headers.values]
+    X-Accel-Buffering = "no"
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/api/documents/*/process"
+  [headers.values]
+    X-Accel-Buffering = "no"
+    Cache-Control = "no-cache"

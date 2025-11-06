@@ -417,11 +417,12 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    return new Response(stream, {
+    return new NextResponse(stream, {
       headers: {
-        'Content-Type': 'text/plain',
+        'Content-Type': 'text/stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no',
       },
     })
 

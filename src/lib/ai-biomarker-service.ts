@@ -139,7 +139,7 @@ export class AIBiomarkerService {
 
     try {
       const textLength = extractedText.length;
-      const model = process.env.OPENAI_MODEL || 'gpt-5';
+      const model = process.env.OPENAI_MODEL || 'gpt-5-mini';
       
       // Send progress updates
       onProgress?.('🚀 Starting comprehensive biomarker extraction...', { 
@@ -165,7 +165,7 @@ export class AIBiomarkerService {
         onProgress?.('🤖 Preparing advanced AI extraction system...', { 
           phase: 'ai_preparation', 
           textLength: extractedText.length,
-          model: process.env.OPENAI_MODEL || 'gpt-5'
+          model: process.env.OPENAI_MODEL || 'gpt-5-mini'
         })
         
         try {
@@ -225,7 +225,7 @@ export class AIBiomarkerService {
     }
 
     // Get the model from environment or default to gpt-5
-    const model = process.env.OPENAI_MODEL || 'gpt-5'
+    const model = process.env.OPENAI_MODEL || 'gpt-5-mini'
     
     const systemPrompt = `You are an expert medical data extraction specialist with deep knowledge of laboratory tests, biomarkers, and medical terminology. Your task is to extract ALL biomarkers and their values from medical documents with maximum accuracy and completeness.
 
@@ -365,7 +365,7 @@ EXTRACTION RULES:
     })
 
     // Get the model from environment or default to gpt-5
-    const model = process.env.OPENAI_MODEL || 'gpt-5'
+    const model = process.env.OPENAI_MODEL || 'gpt-5-mini'
     
     const systemPrompt = `You are an expert medical data extraction specialist with deep knowledge of laboratory tests, biomarkers, and medical terminology. Your task is to extract ALL biomarkers and their values from medical documents with maximum accuracy and completeness.
 
