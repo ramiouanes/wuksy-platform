@@ -8,7 +8,7 @@ The following dependencies have been added to enable real document processing:
 
 - `tesseract.js` - Free OCR engine for text extraction from images
 - `openai` - OpenAI API client for AI-enhanced extraction (optional)
-- `pdf-parse` - PDF text extraction library
+- `unpdf` - Serverless-optimized PDF text extraction library
 - `sharp` - Image preprocessing for better OCR results
 
 ## Environment Variables

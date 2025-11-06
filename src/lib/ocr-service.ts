@@ -1,7 +1,7 @@
 // Dynamic imports to avoid initialization issues
 // import Tesseract from 'tesseract.js'
-// import pdf from 'pdf-parse'
 // import sharp from 'sharp'
+// import { extractText, getDocumentProxy } from 'unpdf'
 
 export interface OCRResult {
   text: string
@@ -60,22 +60,30 @@ export class OCRService {
     fileBuffer: Buffer, 
     options: OCROptions = {}
   ): Promise<OCRResult> {
+    const startTime = Date.now()
+    
     try {
       // Dynamic import to avoid initialization issues
-      const pdf = (await import('pdf-parse')).default
+      const { extractText, getDocumentProxy } = await import('unpdf')
       
-      // First, try to extract text directly from PDF
-      const pdfData = await pdf(fileBuffer)
+      // Convert Buffer to Uint8Array for unpdf
+      const uint8Array = new Uint8Array(fileBuffer)
       
-      if (pdfData.text && pdfData.text.trim().length > 100) {
+      // Get the PDF document proxy
+      const pdf = await getDocumentProxy(uint8Array)
+      
+      // Extract text from the PDF
+      const { totalPages, text } = await extractText(pdf, { mergePages: true })
+      
+      if (text && text.trim().length > 100) {
         // PDF has extractable text
         return {
-          text: pdfData.text,
+          text: text,
           confidence: 0.95, // High confidence for direct text extraction
           metadata: {
-            pageCount: pdfData.numpages,
+            pageCount: totalPages,
             language: options.language || 'eng',
-            processingTime: Date.now() - Date.now()
+            processingTime: Date.now() - startTime
           }
         }
       }
