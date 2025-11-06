@@ -100,11 +100,24 @@ export async function POST(request: NextRequest) {
       async start(controller) {
         const encoder = new TextEncoder()
         
+        // Heartbeat to keep connection alive (every 5 seconds)
+        const heartbeatInterval = setInterval(() => {
+          try {
+            if (!isCancelled && !controllerClosed && controller.desiredSize !== null) {
+              // Send a comment line as heartbeat (SSE format)
+              controller.enqueue(encoder.encode(': heartbeat\n\n'))
+            }
+          } catch (error) {
+            clearInterval(heartbeatInterval)
+          }
+        }, 5000)
+        
         const sendUpdate = (status: string, details?: any) => {
           try {
             // Check if stream was cancelled or controller is closed
             if (isCancelled || controllerClosed || controller.desiredSize === null) {
               console.log('Stream cancelled or closed, skipping update:', status)
+              clearInterval(heartbeatInterval)
               return
             }
             
@@ -117,6 +130,7 @@ export async function POST(request: NextRequest) {
           } catch (error) {
             // Mark controller as closed to prevent further attempts
             controllerClosed = true
+            clearInterval(heartbeatInterval)
             // Log but don't throw - this prevents the entire analysis from failing
             console.log('Failed to send stream update (likely cancelled):', status, error)
           }
@@ -378,6 +392,13 @@ export async function POST(request: NextRequest) {
             processingTime: aiAnalysisResult.processing_time
           })
 
+          // Clear heartbeat before closing
+          try {
+            clearInterval(heartbeatInterval)
+          } catch (e) {
+            // Ignore
+          }
+          
           // Only close if not already cancelled or closed
           if (!isCancelled && !controllerClosed) {
             try {
@@ -390,6 +411,14 @@ export async function POST(request: NextRequest) {
 
         } catch (error) {
           console.error('Streaming analysis error:', error)
+          
+          // Clear heartbeat on error
+          try {
+            clearInterval(heartbeatInterval)
+          } catch (e) {
+            // Ignore
+          }
+          
           sendUpdate('💥 Analysis failed', { 
             error: error instanceof Error ? error.message : 'Unknown error' 
           })
@@ -417,12 +446,13 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    return new NextResponse(stream, {
+    return new Response(stream, {
       headers: {
-        'Content-Type': 'text/stream',
-        'Cache-Control': 'no-cache',
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
         'X-Accel-Buffering': 'no',
+        'Transfer-Encoding': 'chunked',
       },
     })
 

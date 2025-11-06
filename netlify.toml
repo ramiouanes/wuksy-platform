@@ -22,15 +22,16 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
 
-# Streaming endpoints - disable buffering
+# Streaming endpoints - disable buffering for Server-Sent Events
 [[headers]]
   for = "/api/analysis/generate-streaming"
   [headers.values]
     X-Accel-Buffering = "no"
-    Cache-Control = "no-cache"
+    Cache-Control = "no-cache, no-transform"
+    Content-Type = "text/event-stream"
 
 [[headers]]
   for = "/api/documents/*/process"
   [headers.values]
     X-Accel-Buffering = "no"
-    Cache-Control = "no-cache"
+    Cache-Control = "no-cache, no-transform"

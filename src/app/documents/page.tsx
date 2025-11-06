@@ -179,6 +179,11 @@ export default function DocumentsPage() {
             const lines = chunk.split('\n').filter(line => line.trim())
             
             for (const line of lines) {
+              // Skip heartbeat and empty lines
+              if (line.startsWith(':') || !line.trim()) {
+                continue
+              }
+              
               try {
                 const update = JSON.parse(line)
                 console.log('Analysis update:', update.status, 'Details:', update.details)
