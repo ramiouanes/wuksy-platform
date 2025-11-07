@@ -136,7 +136,8 @@ Routes automatically redirect to signin if user is not authenticated:
 
 ### File Processing  
 - `POST /api/documents/upload` - File upload
-- `POST /api/documents/[id]/process` - Document processing
+- `POST /api/documents/[id]/process` - Trigger background processing (async)
+- `GET /api/documents/[id]/processing-status` - Poll for processing status
 
 ### Analysis
 - `POST /api/analysis/generate` - Generate health analysis
@@ -171,11 +172,16 @@ src/
 Ensure these are set in your deployment environment:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` (for server-side operations)
+- `OPENAI_API_KEY` (for AI biomarker extraction)
 
 ### Supabase Configuration
 1. **RLS Policies**: Already configured for user data protection
 2. **OAuth Providers**: Configure in Supabase Auth settings
 3. **Email Templates**: Customize in Supabase Auth settings
+4. **Edge Functions**: Background processing handled by Supabase Edge Functions
+   - Deploy with: `npx supabase functions deploy process-document`
+   - Set secrets: `npx supabase secrets set OPENAI_API_KEY=your_key`
 
 ## Troubleshooting
 
@@ -201,6 +207,61 @@ Add to `.env.local` for more verbose logging:
 NEXT_PUBLIC_DEBUG=true
 ```
 
+## Background Processing Architecture
+
+### How It Works
+
+The document processing system uses a **background job architecture** to handle long-running tasks without timeout issues:
+
+1. **Upload** → File stored in Supabase Storage
+2. **Trigger** → Netlify function queues job (returns 202 immediately)
+3. **Process** → Supabase Edge Function processes document (150s timeout)
+4. **Poll** → Client polls for status updates every 2 seconds
+5. **Complete** → Results stored in database
+
+### Key Benefits
+
+- ✅ **15x longer timeout**: 150 seconds (Supabase) vs 10 seconds (Netlify free tier)
+- ✅ **Resilient**: Status persists in database, survives navigation
+- ✅ **Scalable**: Edge Functions handle concurrent processing
+- ✅ **Real-time updates**: Polling provides smooth progress feedback
+
+### Architecture Components
+
+**Netlify Functions** (Triggers & Polling)
+- `/api/documents/[id]/process` - Queues job, returns immediately
+- `/api/documents/[id]/processing-status` - Returns current status
+
+**Supabase Edge Functions** (Processing)
+- `process-document` - OCR, AI extraction, saves results
+- 150-second timeout (free tier)
+- Writes updates to `document_processing_updates` table
+
+**Database Tables**
+- `documents` - File metadata and final results
+- `document_processing_updates` - Granular phase updates for polling
+
+### Deployment
+
+```bash
+# 1. Deploy database migration
+npx supabase db push
+
+# 2. Deploy edge function
+npx supabase functions deploy process-document
+
+# 3. Set edge function secrets
+npx supabase secrets set OPENAI_API_KEY=your_key
+npx supabase secrets set SUPABASE_SERVICE_ROLE_KEY=your_key
+
+# 4. Deploy to Netlify (automatic via Git)
+git push origin main
+```
+
+For detailed migration documentation, see:
+- `BACKGROUND_PROCESSING_MIGRATION_PLAN.md` - Complete migration guide
+- `BACKGROUND_PROCESSING_TEST_RESULTS.md` - Test results and verification
+
 ## Next Steps
 
 - [ ] Add password reset functionality
@@ -209,3 +270,4 @@ NEXT_PUBLIC_DEBUG=true
 - [ ] Enhanced profile validation
 - [ ] Multi-factor authentication
 - [ ] Admin dashboard for user management
+- [ ] Migrate to WebSockets for real-time updates (future enhancement)

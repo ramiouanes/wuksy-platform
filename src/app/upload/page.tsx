@@ -65,6 +65,14 @@ export default function UploadPage() {
     })
   }, [files, isMobile])
 
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      // Cleanup any ongoing polls when component unmounts
+      // (polling intervals are already cleaned up in the promise)
+    }
+  }, [])
+
   // Helper function to extract title and content from reasoning text
   const parseReasoningText = (text: string) => {
     const titleMatch = text.match(/\*\*(.*?)\*\*/)
@@ -110,146 +118,121 @@ export default function UploadPage() {
     setFiles(prev => prev.filter(f => f.id !== id))
   }
 
-  const processDocumentWithStreaming = async (documentId: string, fileId: string, token: string | undefined) => {
+  const processDocumentWithPolling = async (documentId: string, fileId: string, token: string | undefined) => {
     if (!token) throw new Error('No authentication token available')
 
-    console.log('🚀 Starting streaming request for document:', documentId)
-    const startTime = Date.now()
-
-    const response = await fetch(`/api/documents/${documentId}/process`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'text/stream'
-      }
-    })
-
-    console.log('✅ Response received, status:', response.status)
-    console.log('Response headers:', Object.fromEntries(response.headers.entries()))
-
-    if (!response.ok) {
-      throw new Error(`Processing failed: ${response.statusText}`)
-    }
-
-    const reader = response.body?.pipeThrough(new TextDecoderStream()).getReader()
-    if (!reader) throw new Error('Failed to create stream reader')
-
-    let progressPercentage = 0
-    let buffer = '' // Buffer for incomplete JSON chunks
-    let chunkCount = 0
-
+    console.log('🚀 Starting document processing for:', documentId)
+    
+    // Step 1: Trigger the processing job
     try {
-      console.log('📡 Starting to read stream...')
-      while (true) {
-        const chunkStartTime = Date.now()
-        const { value, done } = await reader.read()
-        const chunkReceiveTime = Date.now() - chunkStartTime
-        
-        if (done) {
-          console.log('✅ Stream complete after', Date.now() - startTime, 'ms')
-          break
+      const triggerResponse = await fetch(`/api/documents/${documentId}/process`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-        
-        chunkCount++
-        console.log(`📦 Chunk ${chunkCount} received after ${chunkReceiveTime}ms, size:`, value.length)
+      })
 
-        // Add new data to buffer
-        buffer += value
-        
-        // Split by newlines but keep incomplete lines in buffer
-        const lines = buffer.split('\n')
-        // Keep the last (potentially incomplete) line in the buffer
-        buffer = lines.pop() || ''
-        
-        for (const line of lines) {
-          const trimmedLine = line.trim()
-          if (!trimmedLine) continue
-          
-          // Skip SSE comment lines (heartbeats)
-          if (trimmedLine.startsWith(':')) {
-            continue
+      if (!triggerResponse.ok) {
+        throw new Error(`Failed to trigger processing: ${triggerResponse.statusText}`)
+      }
+
+      const triggerResult = await triggerResponse.json()
+      console.log('✅ Processing triggered:', triggerResult)
+    } catch (error) {
+      console.error('❌ Failed to trigger processing:', error)
+      throw error
+    }
+
+    // Step 2: Poll for status updates
+    console.log('📊 Starting status polling for document:', documentId)
+    const startTime = Date.now()
+    const maxDuration = 3 * 60 * 1000 // 3 minutes
+    let pollCount = 0
+
+    return new Promise<void>((resolve, reject) => {
+      const poll = async () => {
+        try {
+          pollCount++
+          const elapsed = Date.now() - startTime
+
+          // Timeout
+          if (elapsed > maxDuration) {
+            clearInterval(intervalId)
+            reject(new Error('Processing timeout (3 minutes)'))
+            return
           }
-          
-          try {
-            const update = JSON.parse(trimmedLine)
-            
-            // Only log meaningful AI reasoning summaries
-            if (update.details?.hasSummaryText) {
-              console.log('🧠 [AI REASONING]:', update.status)
-            }
-            
-            // Calculate progress based on AI reasoning phases
-            if (update.details?.phase) {
-              switch (update.details.phase) {
-                case 'initialization':
-                case 'validation':
-                case 'download':
-                case 'ocr':
-                  progressPercentage = 15
-                  break
-                case 'reasoning':
-                  // Progressive reasoning steps
-                  const reasoningSteps = ['document_analysis', 'pattern_recognition', 'knowledge_matching', 'standardization']
-                  const stepIndex = reasoningSteps.indexOf(update.details.step || '')
-                  progressPercentage = 20 + (stepIndex >= 0 ? (stepIndex / reasoningSteps.length) * 40 : 0)
-                  break
-                case 'generating':
-                  progressPercentage = Math.min(65 + (update.details.generatedTokens || 0) / 20, 85)
-                  break
-                case 'validation':
-                  progressPercentage = 88
-                  break
-                case 'enhancement':
-                  progressPercentage = 92
-                  break
-                case 'completed':
-                case 'complete':
-                  progressPercentage = 100
-                  break
-                default:
-                  progressPercentage = Math.min(progressPercentage + 2, 95)
-              }
-            }
 
-            // Update the file status with AI reasoning metrics
-            setFiles(prev => prev.map(f => 
-              f.id === fileId 
-                ? { 
-                    ...f, 
-                    progress: progressPercentage,
-                    processingStatus: update.status,
-                    processingDetails: update.details,
-                    status: (update.details?.phase === 'complete' || update.details?.phase === 'completed') ? 'success' as const : 'processing' as const,
-                    aiMetrics: update.details?.phase ? {
-                      phase: update.details.phase,
-                      reasoningTokens: update.details.reasoningTokens || 0,
-                      generatedTokens: update.details.generatedTokens || 0,
-                      thoughtProcess: update.details.thoughtProcess,
-                      biomarkersFound: update.details.biomarkersFound,
-                      databaseMatches: update.details.databaseMatches,
-                      confidence: update.details.confidence
-                    } : (update.details?.hasSummaryText && f.aiMetrics ? {
-                      ...f.aiMetrics,
-                      thoughtProcess: update.details.thoughtProcess || f.aiMetrics.thoughtProcess, // Keep previous if no new one
-                      reasoningTokens: update.details.reasoningTokens || f.aiMetrics.reasoningTokens
-                    } : f.aiMetrics)
-                  }
-                : f
-            ))
-
-            // If processing is complete, break
-            if (update.details?.phase === 'complete' || update.details?.phase === 'completed') {
-              break
+          // Fetch status
+          const response = await fetch(`/api/documents/${documentId}/processing-status`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
             }
+          })
 
-          } catch (parseError) {
-            console.warn('Failed to parse streaming update:', parseError)
+          if (!response.ok) {
+            throw new Error(`Status check failed: ${response.statusText}`)
+          }
+
+          const data = await response.json()
+          console.log(`📊 Poll #${pollCount}:`, data.status, data.currentPhase)
+
+          // Calculate progress
+          let progressPercentage = data.progress || 0
+
+          // Update file state (same format as before for UI compatibility)
+          setFiles(prev => prev.map(f =>
+            f.id === fileId
+              ? {
+                  ...f,
+                  progress: progressPercentage,
+                  processingStatus: data.currentMessage || 'Processing...',
+                  processingDetails: {
+                    phase: data.currentPhase,
+                    thoughtProcess: data.updates?.find((u: any) => u.details?.thoughtProcess)?.details?.thoughtProcess,
+                    biomarkersFound: data.updates?.find((u: any) => u.details?.biomarkersFound)?.details?.biomarkersFound,
+                    confidence: data.updates?.find((u: any) => u.details?.confidence)?.details?.confidence
+                  },
+                  status: data.status === 'completed' ? 'success' as const : 'processing' as const,
+                  aiMetrics: data.currentPhase ? {
+                    phase: data.currentPhase,
+                    reasoningTokens: 0,
+                    generatedTokens: 0,
+                    thoughtProcess: data.updates?.find((u: any) => u.details?.thoughtProcess)?.details?.thoughtProcess,
+                    biomarkersFound: data.updates?.find((u: any) => u.details?.biomarkersFound)?.details?.biomarkersFound,
+                    databaseMatches: data.updates?.find((u: any) => u.details?.databaseMatches)?.details?.databaseMatches,
+                    confidence: data.updates?.find((u: any) => u.details?.confidence)?.details?.confidence
+                  } : f.aiMetrics
+                }
+              : f
+          ))
+
+          // Check completion
+          if (data.status === 'completed') {
+            clearInterval(intervalId)
+            console.log(`✅ Processing complete after ${elapsed}ms`)
+            resolve()
+          } else if (data.status === 'failed') {
+            clearInterval(intervalId)
+            reject(new Error('Processing failed'))
+          }
+
+        } catch (error) {
+          console.error('Poll error:', error)
+          if (pollCount > 5) {
+            clearInterval(intervalId)
+            reject(error)
           }
         }
       }
-    } finally {
-      reader.releaseLock()
-    }
+
+      // Initial poll
+      poll()
+
+      // Poll every 2 seconds
+      const intervalId = setInterval(poll, 2000)
+    })
   }
 
   const uploadFiles = async () => {
@@ -303,9 +286,9 @@ export default function UploadPage() {
             : f
         ))
 
-        // Trigger streaming processing
+        // Trigger polling-based processing
         try {
-          await processDocumentWithStreaming(uploadResult.document.id, fileObj.id, session?.access_token)
+          await processDocumentWithPolling(uploadResult.document.id, fileObj.id, session?.access_token)
         } catch (processingError) {
           console.error('Processing failed:', processingError)
           // Extract error message from the error object
@@ -320,11 +303,6 @@ export default function UploadPage() {
           ))
         }
       }
-
-      // Navigate to documents page after all files are processed
-      setTimeout(() => {
-        router.push('/documents')
-      }, 2000)
       
     } catch (error) {
       console.error('Upload failed:', error)
@@ -599,7 +577,7 @@ export default function UploadPage() {
           </motion.div>
         )}
 
-        {/* Upload Button */}
+        {/* Upload Button or View Results */}
         {files.length > 0 && (
           <motion.div
             initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
@@ -607,24 +585,35 @@ export default function UploadPage() {
             transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.4 }}
             className="text-center"
           >
-            <Button
-              size="lg"
-              onClick={uploadFiles}
-              disabled={isUploading || files.every(f => f.status !== 'pending')}
-              className="px-8 py-3"
-            >
-              {isUploading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Start Analysis
-                </>
-              )}
-            </Button>
+            {files.every(f => f.status === 'success' || f.status === 'error') && !isUploading ? (
+              <Button
+                size="lg"
+                onClick={() => router.push('/documents')}
+                className="px-8 py-3"
+              >
+                <CheckCircle className="mr-2 h-4 w-4" />
+                View Results
+              </Button>
+            ) : (
+              <Button
+                size="lg"
+                onClick={uploadFiles}
+                disabled={isUploading || files.every(f => f.status !== 'pending')}
+                className="px-8 py-3"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Start Analysis
+                  </>
+                )}
+              </Button>
+            )}
             <p className="text-sm text-neutral-500 mt-4">
               Your data is encrypted and processed securely
             </p>
@@ -659,4 +648,4 @@ export default function UploadPage() {
       </div>
     </div>
   )
-} 
+}
