@@ -8,11 +8,6 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-[functions]
-  # Increase timeout for streaming operations
-  node_bundler = "esbuild"
-  included_files = ["node_modules/**"]
-
 # Cache static assets
 [[headers]]
   for = "/_next/static/*"
