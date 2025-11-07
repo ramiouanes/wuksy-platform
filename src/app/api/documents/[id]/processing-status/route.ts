@@ -65,11 +65,22 @@ export async function GET(
     const latestUpdate = updates?.[updates.length - 1]
     const progress = calculateProgressFromPhase(latestUpdate?.phase || document.status)
     
+    // Find the latest update with thoughtProcess (for AI reasoning display)
+    const latestThoughtUpdate = updates?.reverse().find(u => u.details?.thoughtProcess)
+    const thoughtProcess = latestThoughtUpdate?.details?.thoughtProcess
+    const biomarkersFound = latestUpdate?.details?.biomarkersFound
+    const confidence = latestUpdate?.details?.confidence
+    
+    console.log(`[processing-status] Document ${documentId}: ${document.status}, Latest phase: ${latestUpdate?.phase}, Has thoughtProcess: ${!!thoughtProcess}`)
+    
     return NextResponse.json({
       status: document.status,
       progress,
       currentPhase: latestUpdate?.phase || document.status,
       currentMessage: latestUpdate?.message || getDefaultMessageForStatus(document.status),
+      thoughtProcess, // Add this directly for easier access
+      biomarkersFound,
+      confidence,
       updates: updates || [],
       document: {
         id: document.id,

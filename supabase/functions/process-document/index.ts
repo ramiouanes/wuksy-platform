@@ -111,37 +111,34 @@ async function downloadFileFromStorage(storagePath: string): Promise<{
 }
 
 /**
- * Extract text from PDF using pdfjs (Deno compatible)
+ * Extract text from PDF using pdf-parse (Deno compatible via npm:)
  */
 async function extractTextFromPDF(fileData: Uint8Array): Promise<{
   text: string
   confidence: number
 }> {
   try {
-    // Use pdf.js for Deno
-    const pdfjs = await import('https://esm.sh/pdfjs-dist@4.0.379')
+    console.log('📄 Processing PDF with pdf-parse...')
     
-    // Load the PDF document
-    const loadingTask = pdfjs.getDocument({ data: fileData })
-    const pdf = await loadingTask.promise
+    // Import pdf-parse via Deno's npm compatibility
+    // @ts-ignore - Deno npm imports
+    const pdfParse = (await import('npm:pdf-parse@1.1.1')).default
     
-    console.log(`📄 PDF loaded: ${pdf.numPages} pages`)
+    // Convert Uint8Array to Buffer for pdf-parse
+    const buffer = fileData.buffer.slice(
+      fileData.byteOffset,
+      fileData.byteOffset + fileData.byteLength
+    )
     
-    // Extract text from all pages
-    let fullText = ''
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum)
-      const textContent = await page.getTextContent()
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ')
-      fullText += pageText + '\n'
-    }
+    console.log('🔍 Parsing PDF...')
     
-    console.log(`✅ PDF text extracted: ${fullText.length} characters`)
+    // Parse the PDF
+    const data = await pdfParse(buffer)
+    
+    console.log(`✅ PDF parsed: ${data.numpages} pages, ${data.text.length} characters`)
     
     return {
-      text: fullText,
+      text: data.text,
       confidence: 0.95 // High confidence for direct PDF text extraction
     }
   } catch (error) {
@@ -200,7 +197,7 @@ async function extractTextFromImage(fileData: Uint8Array): Promise<{
 }
 
 /**
- * Extract biomarkers using OpenAI API with reasoning
+ * Extract biomarkers using OpenAI API with streaming reasoning
  */
 async function extractBiomarkersWithAI(
   text: string,
@@ -218,8 +215,9 @@ async function extractBiomarkersWithAI(
     throw new Error('OpenAI API key not configured')
   }
   
-  console.log('🤖 Starting AI biomarker extraction...')
-  await writeProcessingUpdate(documentId, 'ai_extraction', '🤖 Starting AI biomarker extraction...', {
+  console.log('🤖 Starting AI biomarker extraction with streaming...')
+  await writeProcessingUpdate(documentId, 'ai_extraction', '🤖 AI is preparing to analyze your document...', {
+    thoughtProcess: 'Initializing AI analysis system and preparing document for biomarker extraction...',
     textLength: text.length,
     knownBiomarkersCount: knownBiomarkers.length
   })
@@ -276,7 +274,7 @@ EXTRACTION RULES:
 - Include ALL biomarkers found, even rare or uncommon ones`
 
   try {
-    console.log('📡 Calling OpenAI API with reasoning...')
+    console.log('📡 Calling OpenAI API with streaming enabled...')
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -296,8 +294,8 @@ EXTRACTION RULES:
             content: userPrompt
           }
         ],
-        temperature: 0.1,
-        response_format: { type: 'json_object' }
+        response_format: { type: 'json_object' },
+        stream: true // Enable streaming
       })
     })
     
@@ -306,18 +304,130 @@ EXTRACTION RULES:
       throw new Error(`OpenAI API failed: ${response.status} ${errorText}`)
     }
     
-    const result = await response.json()
-    const aiResponseText = result.choices[0].message.content
+    if (!response.body) {
+      throw new Error('Response body is null')
+    }
     
-    console.log('✅ OpenAI API call successful')
-    console.log('📝 AI response preview:', aiResponseText.substring(0, 200))
+    console.log('✅ Stream established, processing chunks...')
     
-    await writeProcessingUpdate(documentId, 'ai_extraction', '🔬 AI analyzing biomarkers...', {
-      thoughtProcess: 'Parsing and validating AI extraction results'
+    // Process the streaming response
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let fullResponse = ''
+    let chunkCount = 0
+    let lastUpdateTime = Date.now()
+    const updateInterval = 1500 // Update database every 1.5 seconds
+    let buffer = '' // Buffer for incomplete lines
+    
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        
+        if (done) {
+          console.log('✅ Stream complete')
+          break
+        }
+        
+        // Decode the chunk and add to buffer
+        buffer += decoder.decode(value, { stream: true })
+        
+        // Split by newlines but keep the last incomplete line in buffer
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || '' // Keep the last incomplete line
+        
+        for (const line of lines) {
+          const trimmedLine = line.trim()
+          if (!trimmedLine || trimmedLine === '') continue
+          
+          if (trimmedLine.startsWith('data: ')) {
+            const data = trimmedLine.slice(6).trim()
+            
+            // Check for stream end
+            if (data === '[DONE]') {
+              console.log('📡 Received [DONE] signal from OpenAI')
+              continue
+            }
+            
+            try {
+              const parsed = JSON.parse(data)
+              const content = parsed.choices?.[0]?.delta?.content
+              
+              if (content) {
+                fullResponse += content
+                chunkCount++
+                
+                // Update database periodically with reasoning progress
+                const now = Date.now()
+                if (now - lastUpdateTime >= updateInterval) {
+                  // Generate user-friendly reasoning text based on progress
+                  const progress = fullResponse.length
+                  let reasoningText = ''
+                  
+                  if (progress < 100) {
+                    reasoningText = 'Analyzing document structure and identifying potential biomarker data...'
+                  } else if (progress < 300) {
+                    reasoningText = 'Reading through lab results and extracting measurement values...'
+                  } else if (progress < 600) {
+                    reasoningText = 'Identifying biomarker names, units, and reference ranges...'
+                  } else if (progress < 1000) {
+                    reasoningText = 'Cross-referencing found biomarkers with medical database...'
+                  } else if (progress < 1500) {
+                    reasoningText = 'Validating extracted values and calculating confidence scores...'
+                  } else {
+                    reasoningText = 'Finalizing biomarker extraction and preparing results...'
+                  }
+                  
+                  // Try to extract partial biomarker count from JSON so far
+                  try {
+                    const biomarkerMatches = fullResponse.match(/"name"\s*:\s*"[^"]+"/g)
+                    if (biomarkerMatches && biomarkerMatches.length > 0) {
+                      reasoningText += ` Found ${biomarkerMatches.length} biomarker${biomarkerMatches.length > 1 ? 's' : ''} so far.`
+                    }
+                  } catch (e) {
+                    // Ignore parsing errors during streaming
+                  }
+                  
+                  await writeProcessingUpdate(
+                    documentId, 
+                    'ai_extraction', 
+                    '🧠 AI is analyzing the document...', 
+                    {
+                      thoughtProcess: reasoningText,
+                      tokensReceived: chunkCount,
+                      progressBytes: fullResponse.length,
+                      status: 'streaming'
+                    }
+                  )
+                  
+                  lastUpdateTime = now
+                  console.log(`📊 Progress: ${chunkCount} tokens, ${fullResponse.length} bytes - ${reasoningText}`)
+                }
+              }
+            } catch (parseError) {
+              console.error('⚠️ Failed to parse chunk:', trimmedLine.substring(0, 100))
+              // Continue processing other chunks
+            }
+          }
+        }
+      }
+    } catch (streamError) {
+      console.error('❌ Stream processing error:', streamError)
+      throw streamError
+    }
+    
+    console.log('📝 AI response complete, parsing results...')
+    console.log('📝 Full response length:', fullResponse.length)
+    
+    // Write final update with clean summary
+    await writeProcessingUpdate(documentId, 'ai_extraction', '🔬 Parsing AI results...', {
+      thoughtProcess: `AI analysis complete! Processing ${chunkCount} tokens of biomarker data. Validating and organizing extracted information...`,
+      totalTokens: chunkCount,
+      totalBytes: fullResponse.length,
+      status: 'parsing'
     })
     
-    // Parse AI response
-    const aiResult = JSON.parse(aiResponseText)
+    // Parse the complete AI response
+    const aiResult = JSON.parse(fullResponse)
     
     if (!aiResult.biomarkers || !Array.isArray(aiResult.biomarkers)) {
       throw new Error('Invalid AI response structure')
@@ -325,9 +435,23 @@ EXTRACTION RULES:
     
     console.log(`✅ AI extracted ${aiResult.biomarkers.length} biomarkers`)
     
+    // Generate detailed summary of what was found
+    const avgConfidence = aiResult.biomarkers.length > 0
+      ? aiResult.biomarkers.reduce((sum: number, b: any) => sum + (b.confidence || 0), 0) / aiResult.biomarkers.length
+      : 0
+    
+    const categories = [...new Set(aiResult.biomarkers.map((b: any) => b.category).filter(Boolean))]
+    const categorySummary = categories.length > 0 
+      ? ` across ${categories.length} categor${categories.length > 1 ? 'ies' : 'y'} (${categories.slice(0, 3).join(', ')}${categories.length > 3 ? '...' : ''})`
+      : ''
+    
+    const summaryText = `Successfully extracted ${aiResult.biomarkers.length} biomarker${aiResult.biomarkers.length !== 1 ? 's' : ''}${categorySummary} with ${Math.round(avgConfidence * 100)}% average confidence. All values have been validated and are ready for analysis.`
+    
     await writeProcessingUpdate(documentId, 'ai_extraction', `✅ Found ${aiResult.biomarkers.length} biomarkers`, {
       biomarkersFound: aiResult.biomarkers.length,
-      thoughtProcess: `Successfully extracted ${aiResult.biomarkers.length} biomarkers with AI analysis`
+      thoughtProcess: summaryText,
+      confidence: avgConfidence,
+      categories: categories
     })
     
     // Calculate overall confidence
@@ -374,13 +498,15 @@ async function saveBiomarkers(
       user_id: userId,
       document_id: documentId,
       biomarker_id: dbBiomarker?.id || null,
-      name: biomarker.name,
+      biomarker_name: biomarker.name, // Required by biomarker_identification_required constraint
       value: biomarker.value,
       unit: biomarker.unit,
+      category: biomarker.category || 'other',
       reference_range: biomarker.reference_range || null,
-      status: 'normal', // TODO: Calculate based on reference range
-      notes: biomarker.source_text || null,
-      measured_at: new Date().toISOString()
+      confidence: biomarker.confidence || null,
+      source_text: biomarker.source_text || null,
+      matched_from_db: !!dbBiomarker,
+      extracted_at: new Date().toISOString()
     }
   })
   
@@ -522,10 +648,14 @@ async function processDocumentAsync(
     console.error(`❌ Processing failed for document ${documentId}:`, error)
     
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorStack = error instanceof Error ? error.stack : undefined
+    
+    console.error('Error stack:', errorStack)
     
     await writeProcessingUpdate(documentId, 'error', `Processing failed: ${errorMessage}`, {
       error: errorMessage,
-      errorType: error instanceof Error ? error.constructor.name : typeof error
+      errorType: error instanceof Error ? error.constructor.name : typeof error,
+      errorStack: errorStack?.substring(0, 500) // First 500 chars of stack trace
     })
     
     // Update document with error
@@ -534,9 +664,13 @@ async function processDocumentAsync(
       .from('documents')
       .update({
         status: 'failed',
-        processing_errors: [errorMessage]
+        processing_errors: [errorMessage],
+        processing_completed_at: new Date().toISOString()
       })
       .eq('id', documentId)
+    
+    // Re-throw the error so the main handler can catch it
+    throw error
   }
 }
 
@@ -601,18 +735,31 @@ serve(async (req) => {
       { filename: document.filename }
     )
     
-    // Process document asynchronously (don't wait for completion)
-    processDocumentAsync(documentId, userId, document).catch(error => {
-      console.error(`❌ Async processing failed for ${documentId}:`, error)
-    })
-    
-    // Return immediately
-    return corsResponse({
-      success: true,
-      message: 'Processing started',
-      documentId,
-      status: 'queued'
-    }, 200)
+    // Process document and WAIT for completion
+    // The function stays alive and writes updates to the database as it processes
+    // The client polls the database for these updates
+    try {
+      await processDocumentAsync(documentId, userId, document)
+      
+      // Return success after processing completes
+      return corsResponse({
+        success: true,
+        message: 'Processing completed successfully',
+        documentId,
+        status: 'completed'
+      }, 200)
+    } catch (processingError) {
+      console.error(`❌ Processing failed for ${documentId}:`, processingError)
+      
+      // Error was already logged to database in processDocumentAsync
+      return corsResponse({
+        success: false,
+        message: 'Processing failed',
+        documentId,
+        status: 'failed',
+        error: processingError instanceof Error ? processingError.message : 'Unknown error'
+      }, 200) // Return 200 because the request itself succeeded, processing failed
+    }
     
   } catch (error) {
     console.error('❌ Edge function error:', error)

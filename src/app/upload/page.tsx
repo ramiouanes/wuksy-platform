@@ -176,12 +176,12 @@ export default function UploadPage() {
           }
 
           const data = await response.json()
-          console.log(`📊 Poll #${pollCount}:`, data.status, data.currentPhase)
+          console.log(`📊 Poll #${pollCount}:`, data.status, data.currentPhase, 'ThoughtProcess:', data.thoughtProcess?.substring(0, 50))
 
           // Calculate progress
           let progressPercentage = data.progress || 0
 
-          // Update file state (same format as before for UI compatibility)
+          // Update file state (use direct fields from response)
           setFiles(prev => prev.map(f =>
             f.id === fileId
               ? {
@@ -190,19 +190,18 @@ export default function UploadPage() {
                   processingStatus: data.currentMessage || 'Processing...',
                   processingDetails: {
                     phase: data.currentPhase,
-                    thoughtProcess: data.updates?.find((u: any) => u.details?.thoughtProcess)?.details?.thoughtProcess,
-                    biomarkersFound: data.updates?.find((u: any) => u.details?.biomarkersFound)?.details?.biomarkersFound,
-                    confidence: data.updates?.find((u: any) => u.details?.confidence)?.details?.confidence
+                    thoughtProcess: data.thoughtProcess, // Direct from response
+                    biomarkersFound: data.biomarkersFound,
+                    confidence: data.confidence
                   },
                   status: data.status === 'completed' ? 'success' as const : 'processing' as const,
                   aiMetrics: data.currentPhase ? {
                     phase: data.currentPhase,
                     reasoningTokens: 0,
                     generatedTokens: 0,
-                    thoughtProcess: data.updates?.find((u: any) => u.details?.thoughtProcess)?.details?.thoughtProcess,
-                    biomarkersFound: data.updates?.find((u: any) => u.details?.biomarkersFound)?.details?.biomarkersFound,
-                    databaseMatches: data.updates?.find((u: any) => u.details?.databaseMatches)?.details?.databaseMatches,
-                    confidence: data.updates?.find((u: any) => u.details?.confidence)?.details?.confidence
+                    thoughtProcess: data.thoughtProcess, // Direct from response
+                    biomarkersFound: data.biomarkersFound,
+                    confidence: data.confidence
                   } : f.aiMetrics
                 }
               : f
