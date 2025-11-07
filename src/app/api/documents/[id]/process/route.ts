@@ -5,6 +5,10 @@ import { ocrService } from '@/lib/ocr-service'
 import { aiBiomarkerService } from '@/lib/ai-biomarker-service'
 import { downloadFileFromStorage, validateFileForProcessing } from '@/lib/file-utils'
 
+// Configure route for streaming
+export const dynamic = 'force-dynamic'
+export const maxDuration = 300 // 5 minutes max for Netlify Pro, 10s for free tier
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -232,6 +236,7 @@ async function handleStreamingProcess(request: NextRequest, documentId: string) 
           
           const update = JSON.stringify({ status, details, timestamp: new Date().toISOString() }) + '\n'
           controller.enqueue(encoder.encode(update))
+          console.log('📤 [SERVER] Sent update:', status.substring(0, 100), 'at', Date.now())
         } catch (error) {
           // Mark controller as closed to prevent further attempts
           controllerClosed = true

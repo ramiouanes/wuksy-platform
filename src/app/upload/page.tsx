@@ -113,6 +113,9 @@ export default function UploadPage() {
   const processDocumentWithStreaming = async (documentId: string, fileId: string, token: string | undefined) => {
     if (!token) throw new Error('No authentication token available')
 
+    console.log('🚀 Starting streaming request for document:', documentId)
+    const startTime = Date.now()
+
     const response = await fetch(`/api/documents/${documentId}/process`, {
       method: 'POST',
       headers: {
@@ -120,6 +123,9 @@ export default function UploadPage() {
         'Accept': 'text/stream'
       }
     })
+
+    console.log('✅ Response received, status:', response.status)
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()))
 
     if (!response.ok) {
       throw new Error(`Processing failed: ${response.statusText}`)
@@ -130,11 +136,22 @@ export default function UploadPage() {
 
     let progressPercentage = 0
     let buffer = '' // Buffer for incomplete JSON chunks
+    let chunkCount = 0
 
     try {
+      console.log('📡 Starting to read stream...')
       while (true) {
+        const chunkStartTime = Date.now()
         const { value, done } = await reader.read()
-        if (done) break
+        const chunkReceiveTime = Date.now() - chunkStartTime
+        
+        if (done) {
+          console.log('✅ Stream complete after', Date.now() - startTime, 'ms')
+          break
+        }
+        
+        chunkCount++
+        console.log(`📦 Chunk ${chunkCount} received after ${chunkReceiveTime}ms, size:`, value.length)
 
         // Add new data to buffer
         buffer += value

@@ -3,6 +3,10 @@ import { createClient } from '@supabase/supabase-js'
 import { getAuthenticatedUser } from '@/lib/auth-server'
 import { AIAnalysisService } from '@/lib/ai-analysis-service'
 
+// Configure route for streaming
+export const dynamic = 'force-dynamic'
+export const maxDuration = 300 // 5 minutes max for Netlify Pro, 10s for free tier
+
 export async function POST(request: NextRequest) {
   try {
     // Get the authenticated user using server-side auth
