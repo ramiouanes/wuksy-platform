@@ -29,9 +29,14 @@
     X-Accel-Buffering = "no"
     Cache-Control = "no-cache, no-transform"
     Content-Type = "text/event-stream"
+    Connection = "keep-alive"
+    Transfer-Encoding = "chunked"
 
 [[headers]]
   for = "/api/documents/*/process"
   [headers.values]
     X-Accel-Buffering = "no"
     Cache-Control = "no-cache, no-transform"
+    Content-Type = "text/event-stream"
+    Connection = "keep-alive"
+    Transfer-Encoding = "chunked"

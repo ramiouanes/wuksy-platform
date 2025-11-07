@@ -202,13 +202,42 @@ async function handleStreamingProcess(request: NextRequest, documentId: string) 
     .eq('id', documentId)
 
   // Create a ReadableStream for streaming progress updates
+  let isCancelled = false
+  let controllerClosed = false
+  
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder()
       
+      // Heartbeat to keep connection alive (every 15 seconds for serverless functions)
+      const heartbeatInterval = setInterval(() => {
+        try {
+          if (!isCancelled && !controllerClosed && controller.desiredSize !== null) {
+            // Send a comment line as heartbeat (SSE format)
+            controller.enqueue(encoder.encode(': heartbeat\n\n'))
+          }
+        } catch (error) {
+          clearInterval(heartbeatInterval)
+        }
+      }, 15000)
+      
       const sendUpdate = (status: string, details?: any) => {
-        const update = JSON.stringify({ status, details, timestamp: new Date().toISOString() }) + '\n'
-        controller.enqueue(encoder.encode(update))
+        try {
+          // Check if stream was cancelled or controller is closed
+          if (isCancelled || controllerClosed || controller.desiredSize === null) {
+            console.log('Stream cancelled or closed, skipping update:', status)
+            clearInterval(heartbeatInterval)
+            return
+          }
+          
+          const update = JSON.stringify({ status, details, timestamp: new Date().toISOString() }) + '\n'
+          controller.enqueue(encoder.encode(update))
+        } catch (error) {
+          // Mark controller as closed to prevent further attempts
+          controllerClosed = true
+          clearInterval(heartbeatInterval)
+          console.log('Failed to send stream update (likely cancelled):', status, error)
+        }
       }
 
               try {
@@ -292,12 +321,28 @@ async function handleStreamingProcess(request: NextRequest, documentId: string) 
         sendUpdate('Document processing completed! Analysis can be triggered manually from the Documents page.', { stage: 'completed' })
 
         sendUpdate('Processing completed successfully', {
+          phase: 'complete',
           document: updatedDocument,
           biomarkersFound: extractionResult.biomarkers.length,
           confidence: extractionResult.overall_confidence
         })
 
-        controller.close()
+        // Clear heartbeat before closing
+        try {
+          clearInterval(heartbeatInterval)
+        } catch (e) {
+          // Ignore
+        }
+        
+        // Only close if not already cancelled or closed
+        if (!isCancelled && !controllerClosed) {
+          try {
+            controller.close()
+            controllerClosed = true
+          } catch (error) {
+            console.log('Controller already closed:', error)
+          }
+        }
 
       } catch (error) {
         console.error('❌ STREAMING PROCESSING ERROR ❌')
@@ -327,20 +372,44 @@ async function handleStreamingProcess(request: NextRequest, documentId: string) 
           .eq('id', documentId)
 
         sendUpdate('Processing failed', { 
+          phase: 'error',
           error: errorMessage,
           errorType: error instanceof Error ? error.constructor.name : typeof error
         })
         
-        controller.close()
+        // Clear heartbeat on error
+        try {
+          clearInterval(heartbeatInterval)
+        } catch (e) {
+          // Ignore
+        }
+        
+        // Only close if not already cancelled or closed
+        if (!isCancelled && !controllerClosed) {
+          try {
+            controller.close()
+            controllerClosed = true
+          } catch (closeError) {
+            console.log('Controller already closed during error handling:', closeError)
+          }
+        }
       }
+    },
+    
+    cancel(reason) {
+      console.log('Stream cancelled by client:', reason)
+      isCancelled = true
+      controllerClosed = true
     }
   })
 
   return new NextResponse(stream, {
     headers: {
-      'Content-Type': 'text/stream',
-      'Cache-Control': 'no-cache',
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
       'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
+      'Transfer-Encoding': 'chunked',
     },
   })
 }
