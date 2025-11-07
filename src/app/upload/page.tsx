@@ -129,18 +129,32 @@ export default function UploadPage() {
     if (!reader) throw new Error('Failed to create stream reader')
 
     let progressPercentage = 0
+    let buffer = '' // Buffer for incomplete JSON chunks
 
     try {
       while (true) {
         const { value, done } = await reader.read()
         if (done) break
 
-        // Parse each line as a JSON update
-        const lines = value.split('\n').filter(line => line.trim())
+        // Add new data to buffer
+        buffer += value
+        
+        // Split by newlines but keep incomplete lines in buffer
+        const lines = buffer.split('\n')
+        // Keep the last (potentially incomplete) line in the buffer
+        buffer = lines.pop() || ''
         
         for (const line of lines) {
+          const trimmedLine = line.trim()
+          if (!trimmedLine) continue
+          
+          // Skip SSE comment lines (heartbeats)
+          if (trimmedLine.startsWith(':')) {
+            continue
+          }
+          
           try {
-            const update = JSON.parse(line)
+            const update = JSON.parse(trimmedLine)
             
             // Only log meaningful AI reasoning summaries
             if (update.details?.hasSummaryText) {

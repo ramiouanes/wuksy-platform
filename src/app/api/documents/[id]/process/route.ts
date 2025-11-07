@@ -255,8 +255,22 @@ async function handleStreamingProcess(request: NextRequest, documentId: string) 
             }
           )
         
+        console.log('Extraction complete:', {
+          biomarkersFound: extractionResult.biomarkers.length,
+          documentType: extractionResult.document_type,
+          confidence: extractionResult.overall_confidence,
+          processingNotes: extractionResult.processing_notes
+        })
+        
         if (extractionResult.biomarkers.length === 0) {
-          throw new Error('No biomarkers found in document')
+          const errorDetails = {
+            documentType: extractionResult.document_type,
+            confidence: extractionResult.overall_confidence,
+            processingNotes: extractionResult.processing_notes,
+            extractionMethod: extractionResult.extraction_method
+          }
+          console.error('No biomarkers extracted. Details:', errorDetails)
+          throw new Error(`No biomarkers found. Extraction details: ${JSON.stringify(errorDetails, null, 2)}`)
         }
 
         sendUpdate('Saving extracted biomarkers...', { biomarkersFound: extractionResult.biomarkers.length })
@@ -600,22 +614,36 @@ async function extractBiomarkersFromDocumentWithStreaming(
 
     // Step 6: Extract biomarkers using comprehensive AI extraction with streaming
     console.log('Extracting biomarkers using comprehensive AI extraction...')
-    console.log('OCR text sample:', ocrResult.text.substring(0, 200))
+    console.log('OCR text sample (first 200 chars):', ocrResult.text.substring(0, 200))
+    console.log('OCR text length:', ocrResult.text.length)
     console.log('Known biomarkers count:', knownBiomarkers?.length || 0)
     
-    const biomarkerResult = await aiBiomarkerService.extractBiomarkersWithStreaming(
-      ocrResult.text,
-      knownBiomarkers || [],
-      true, // Use AI-first approach for maximum biomarker discovery
-      (status, details) => {
-        console.log('🤖 AI Service:', status)
-        onProgress(status, details)
-      }
-    )
+    let biomarkerResult
+    try {
+      biomarkerResult = await aiBiomarkerService.extractBiomarkersWithStreaming(
+        ocrResult.text,
+        knownBiomarkers || [],
+        true, // Use AI-first approach for maximum biomarker discovery
+        (status, details) => {
+          console.log('🤖 AI Service:', status)
+          onProgress(status, details)
+        }
+      )
+    } catch (aiExtractionError) {
+      console.error('❌ AI EXTRACTION FAILED - CRITICAL ERROR:', aiExtractionError)
+      console.error('Error details:', {
+        type: aiExtractionError instanceof Error ? aiExtractionError.constructor.name : typeof aiExtractionError,
+        message: aiExtractionError instanceof Error ? aiExtractionError.message : String(aiExtractionError),
+        stack: aiExtractionError instanceof Error ? aiExtractionError.stack : 'No stack'
+      })
+      throw new Error(`AI biomarker extraction failed: ${aiExtractionError instanceof Error ? aiExtractionError.message : String(aiExtractionError)}`)
+    }
     
+    console.log('✅ AI extraction completed successfully')
     console.log('AI extraction result:', {
       biomarkersFound: biomarkerResult.biomarkers.length,
       confidence: biomarkerResult.overall_confidence,
+      documentType: biomarkerResult.document_type,
       processingNotes: biomarkerResult.processing_notes
     })
 
@@ -643,17 +671,28 @@ async function extractBiomarkersFromDocumentWithStreaming(
     return finalResult
 
   } catch (error) {
-    console.error('Biomarker extraction failed:', error)
+    console.error('❌ BIOMARKER EXTRACTION FAILED - TOP LEVEL ERROR')
+    console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error)
+    console.error('Error message:', error instanceof Error ? error.message : String(error))
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    
     onProgress('Extraction failed', { 
       stage: 'error', 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      error: errorMessage,
+      errorType: error instanceof Error ? error.constructor.name : typeof error
     })
     
-    // Return error result
+    // Return detailed error result
     return {
       biomarkers: [],
       document_type: 'unknown',
-      processing_notes: [`Extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`],
+      processing_notes: [
+        `Extraction failed: ${errorMessage}`,
+        `Error type: ${error instanceof Error ? error.constructor.name : typeof error}`,
+        ...(error instanceof Error && error.stack ? [`Stack: ${error.stack.substring(0, 500)}`] : [])
+      ],
       overall_confidence: 0,
       extraction_method: 'failed',
       ocrText: '',

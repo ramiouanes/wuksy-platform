@@ -418,13 +418,17 @@ EXTRACTION RULES:
 
     try {
       console.log('Starting OpenAI responses API call with reasoning...')
+      console.log('Model:', model)
+      console.log('Input text length:', text.length)
       onProgress?.('🧠 Starting AI reasoning process...', { 
         phase: 'reasoning',
         step: 'api_call_start',
         thoughtProcess: 'Sending request to OpenAI with reasoning enabled'
       })
 
-      const response = await this.openai.responses.create({
+      let response
+      try {
+        response = await this.openai.responses.create({
         model,
         input: [
           {
@@ -446,8 +450,24 @@ EXTRACTION RULES:
         text: {
           format: zodTextFormat(ExtractionZ, "biomarker_extraction")
         }  
-      });
+      })
+      } catch (openaiError) {
+        console.error('❌ OPENAI API REQUEST FAILED')
+        console.error('OpenAI error type:', openaiError instanceof Error ? openaiError.constructor.name : typeof openaiError)
+        console.error('OpenAI error message:', openaiError instanceof Error ? openaiError.message : String(openaiError))
+        
+        // Log API-specific error details
+        if (openaiError && typeof openaiError === 'object' && 'status' in openaiError) {
+          console.error('OpenAI status code:', (openaiError as any).status)
+        }
+        if (openaiError && typeof openaiError === 'object' && 'error' in openaiError) {
+          console.error('OpenAI error details:', JSON.stringify((openaiError as any).error, null, 2))
+        }
+        
+        throw new Error(`OpenAI API request failed: ${openaiError instanceof Error ? openaiError.message : String(openaiError)}`)
+      }
 
+      console.log('OpenAI API call successful, processing streaming response...')
       let fullResponse = '';
       let chunkCount = 0;
       let generatedTokens = 0;
@@ -543,13 +563,24 @@ EXTRACTION RULES:
        }
 
       console.log('Streaming complete, parsing response...')
+      console.log('Full response length:', fullResponse.length)
+      console.log('Response preview (first 500 chars):', fullResponse.substring(0, 500))
+      
       onProgress?.('🔬 Parsing and validating AI extraction results...', { 
         phase: 'validation',
         step: 'parsing',
         thoughtProcess: 'Validating JSON structure and biomarker data quality'
       })
 
-      const aiResult = JSON.parse(fullResponse) as ExtractionT;
+      let aiResult
+      try {
+        aiResult = JSON.parse(fullResponse) as ExtractionT
+      } catch (jsonParseError) {
+        console.error('❌ JSON PARSING FAILED')
+        console.error('Parse error:', jsonParseError)
+        console.error('Attempted to parse:', fullResponse.substring(0, 1000))
+        throw new Error(`Failed to parse OpenAI response as JSON: ${jsonParseError instanceof Error ? jsonParseError.message : String(jsonParseError)}`)
+      }
   
       if (!aiResult || !Array.isArray(aiResult.biomarkers)) {
         console.error('Invalid AI response structure:', aiResult)
