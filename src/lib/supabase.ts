@@ -152,6 +152,19 @@ export interface HealthAnalysis {
   processing_completed_at?: string
   biomarker_readings?: any[]  // Enhanced biomarker data with detailed info, ranges, and references
   biomarkers_by_category?: Record<string, any[]>  // Biomarkers grouped by category
+  overall_health_assessment?: {
+    health_score: number
+    health_category: 'poor' | 'fair' | 'good' | 'excellent'
+    key_strengths: string[]
+    priority_concerns: string[]
+    trajectory: string
+  }
+  monitoring_plan?: {
+    retest_timeline?: string
+    key_biomarkers_to_track?: string[]
+    symptoms_to_monitor?: string[]
+    success_metrics?: string[]
+  }
   created_at: string
   updated_at: string
 }

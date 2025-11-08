@@ -79,6 +79,13 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
   // Supplement priority tab state
   const [activeSupplementTab, setActiveSupplementTab] = useState('essential')
 
+  // Recommendations data (fetched from API routes)
+  const [supplements, setSupplements] = useState<any[]>([])
+  const [lifestyle, setLifestyle] = useState<any[]>([])
+  const [diet, setDiet] = useState<any[]>([])
+  const [workout, setWorkout] = useState<any[]>([])
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false)
+
   useEffect(() => {
     // Resolve the params promise
     const resolveParams = async () => {
@@ -114,6 +121,58 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
       fetchAnalysis()
     }
   }, [analysisId, user, session])
+
+  // Fetch recommendations from API routes
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      if (!analysisId || !session?.access_token || !analysis || analysis.status !== 'completed') return
+      
+      setLoadingRecommendations(true)
+      try {
+        // Fetch supplements
+        const supplementsRes = await fetch(`/api/analysis/${analysisId}/supplements`, {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        })
+        if (supplementsRes.ok) {
+          const supplementsData = await supplementsRes.json()
+          setSupplements(supplementsData.supplements || [])
+        }
+
+        // Fetch lifestyle
+        const lifestyleRes = await fetch(`/api/analysis/${analysisId}/lifestyle`, {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        })
+        if (lifestyleRes.ok) {
+          const lifestyleData = await lifestyleRes.json()
+          setLifestyle(lifestyleData.lifestyle || [])
+        }
+
+        // Fetch diet
+        const dietRes = await fetch(`/api/analysis/${analysisId}/diet`, {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        })
+        if (dietRes.ok) {
+          const dietData = await dietRes.json()
+          setDiet(dietData.diet || [])
+        }
+
+        // Fetch workout
+        const workoutRes = await fetch(`/api/analysis/${analysisId}/workout`, {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        })
+        if (workoutRes.ok) {
+          const workoutData = await workoutRes.json()
+          setWorkout(workoutData.workout || [])
+        }
+      } catch (err) {
+        console.error('Error fetching recommendations:', err)
+      } finally {
+        setLoadingRecommendations(false)
+      }
+    }
+
+    fetchRecommendations()
+  }, [analysisId, session, analysis])
 
   const toggleBiomarkerDetail = (index: string | number) => {
     setExpandedDetails(prev => ({
@@ -422,8 +481,11 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
     { id: 'overview', label: 'Overview', icon: Target },
     { id: 'biomarkers', label: 'Biomarkers', icon: Activity },
     { id: 'supplements', label: 'Supplements', icon: Pill },
+    { id: 'diet', label: 'Diet', icon: Utensils },
     { id: 'lifestyle', label: 'Lifestyle', icon: Heart },
-    { id: 'causes', label: 'Root Causes', icon: Brain }
+    { id: 'workout', label: 'Workout', icon: Dumbbell },
+    { id: 'causes', label: 'Root Causes', icon: Brain },
+    ...(analysis?.monitoring_plan ? [{ id: 'monitoring', label: 'Monitoring', icon: Calendar }] : [])
   ]
 
   return (
@@ -551,10 +613,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="text-2xl font-light text-neutral-800">
-                            {((analysis.recommendations_summary?.supplements?.length || 0) + 
-                              (analysis.recommendations_summary?.essential?.length || 0) + 
-                              (analysis.recommendations_summary?.beneficial?.length || 0) +
-                              (analysis.recommendations_summary?.lifestyle?.length || 0))}
+                            {supplements.length + lifestyle.length + diet.length + workout.length}
                           </div>
                           <div className="text-sm text-neutral-600">Recommendations</div>
                         </div>
@@ -616,8 +675,61 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                       </div>
                     </div>
                   </Card>
-                  
 
+                  {/* Key Findings - Full Health Assessment */}
+                  {analysis.overall_health_assessment && (
+                    <Card className="p-6">
+                      <h3 className="text-xl font-medium text-neutral-800 mb-6">Key Findings</h3>
+                      
+                      {analysis.overall_health_assessment.priority_concerns && 
+                       analysis.overall_health_assessment.priority_concerns.length > 0 && (
+                        <div className="mb-6">
+                          <h4 className="font-medium text-neutral-800 mb-3 flex items-center">
+                            <AlertCircle className="h-4 w-4 text-red-500 mr-2" />
+                            Priority Concerns
+                          </h4>
+                          <div className="space-y-2">
+                            {analysis.overall_health_assessment.priority_concerns.map((concern: string, index: number) => (
+                              <div key={index} className="flex items-start space-x-2 p-2 bg-red-50 rounded-lg border border-red-100">
+                                <AlertCircle className="h-3 w-3 text-red-500 flex-shrink-0 mt-0.5" />
+                                <p className="text-sm text-neutral-700">{concern}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {analysis.overall_health_assessment.key_strengths && 
+                       analysis.overall_health_assessment.key_strengths.length > 0 && (
+                        <div className="mb-6">
+                          <h4 className="font-medium text-neutral-800 mb-3 flex items-center">
+                            <CheckCircle className="h-4 w-4 text-emerald-500 mr-2" />
+                            Key Strengths
+                          </h4>
+                          <div className="space-y-2">
+                            {analysis.overall_health_assessment.key_strengths.map((strength: string, index: number) => (
+                              <div key={index} className="flex items-start space-x-2 p-2 bg-emerald-50 rounded-lg border border-emerald-100">
+                                <CheckCircle className="h-3 w-3 text-emerald-500 flex-shrink-0 mt-0.5" />
+                                <p className="text-sm text-neutral-700">{strength}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {analysis.overall_health_assessment.trajectory && (
+                        <div>
+                          <h4 className="font-medium text-neutral-800 mb-3 flex items-center">
+                            <TrendingUp className="h-4 w-4 text-primary-500 mr-2" />
+                            Health Trajectory
+                          </h4>
+                          <p className="text-sm text-neutral-600 leading-relaxed bg-neutral-50 p-4 rounded-lg border border-neutral-200">
+                            {analysis.overall_health_assessment.trajectory}
+                          </p>
+                        </div>
+                      )}
+                    </Card>
+                  )}
                   
 
                 </div>
@@ -1168,7 +1280,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
 
               {activeTab === 'supplements' && (
                 <div className="space-y-6">
-                  {analysis.recommendations_summary.supplements && analysis.recommendations_summary.supplements.length > 0 ? (
+                  {supplements && supplements.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                       {/* Priority Navigation */}
                       <div className="lg:col-span-1 order-2 lg:order-1">
@@ -1181,8 +1293,8 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                             <h4 className="text-sm font-medium text-neutral-800 mb-3">Priority Levels</h4>
                             <div className="space-y-2">
                               {['essential', 'beneficial', 'optional'].map((priority) => {
-                                const supplements = analysis.recommendations_summary.supplements.filter((rec: any) => rec.priority === priority)
-                                if (supplements.length === 0) return null
+                                const filteredSupplements = supplements.filter((rec: any) => rec.priority === priority)
+                                if (filteredSupplements.length === 0) return null
                                 
                                 const priorityConfig = {
                                   essential: { 
@@ -1222,7 +1334,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                       <span>{config.label}</span>
                                     </div>
                                     <span className="text-xs bg-neutral-200 text-neutral-600 px-2 py-0.5 rounded-full">
-                                      {supplements.length}
+                                      {filteredSupplements.length}
                                     </span>
                                   </button>
                                 )
@@ -1235,7 +1347,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                       {/* Supplement Cards */}
                       <div className="lg:col-span-3 order-1 lg:order-2">
                         {(() => {
-                          const supplements = analysis.recommendations_summary.supplements.filter((rec: any) => rec.priority === activeSupplementTab)
+                          const filteredSupplements = supplements.filter((rec: any) => rec.priority === activeSupplementTab)
                           
                           const priorityConfig = {
                             essential: { 
@@ -1285,7 +1397,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                               
                               {/* Supplement Cards */}
                               <div className="grid gap-4 md:grid-cols-2">
-                              {supplements.map((supplement: any, index: number) => (
+                              {filteredSupplements.map((supplement: any, index: number) => (
                                 <Card key={index} className={`group hover:shadow-lg transition-all duration-300 ${config.borderColor} bg-white flex flex-col h-full`}>
                                   {/* Card Header */}
                                   <div className="p-1 flex-grow">
@@ -1382,6 +1494,12 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                         <span className="text-neutral-500 text-xs font-medium flex-shrink-0">Dosage</span>
                                         <span className="font-medium text-neutral-700 text-xs text-right leading-relaxed">{supplement.dosage}</span>
                                       </div>
+                                      {supplement.form && (
+                                        <div className="min-h-[20px] flex items-start justify-between gap-3">
+                                          <span className="text-neutral-500 text-xs font-medium flex-shrink-0">Form</span>
+                                          <span className="font-medium text-neutral-700 text-xs text-right leading-relaxed capitalize">{supplement.form}</span>
+                                        </div>
+                                      )}
                                       <div className="min-h-[48px] flex flex-col justify-start">
                                         <div className="flex items-start justify-between gap-3 mb-1">
                                           <span className="text-neutral-500 text-xs font-medium flex-shrink-0">Timing</span>
@@ -1416,6 +1534,12 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                         <span className="text-neutral-500 text-xs font-medium flex-shrink-0">Frequency</span>
                                         <span className="font-medium text-neutral-700 text-xs text-right leading-relaxed">{supplement.frequency}</span>
                                       </div>
+                                      {supplement.cost_estimate && (
+                                        <div className="min-h-[20px] flex items-start justify-between gap-3">
+                                          <span className="text-neutral-500 text-xs font-medium flex-shrink-0">Cost</span>
+                                          <span className="font-medium text-neutral-700 text-xs text-right leading-relaxed">{supplement.cost_estimate}</span>
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                   
@@ -1506,7 +1630,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                 <div className="space-y-2">
                                   <h3 className="text-lg font-medium text-neutral-800">Ready to get started?</h3>
                                   <p className="text-neutral-500">
-                                    Total of {analysis.recommendations_summary.supplements.length} personalized recommendations
+                                    Total of {supplements.length} personalized recommendations
                                   </p>
                                 </div>
                                 
@@ -1541,6 +1665,196 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                 </div>
               )}
 
+              {activeTab === 'diet' && (
+                <div className="space-y-6">
+                  <Card className="p-4 sm:p-6">
+                    <div className="flex items-center justify-between mb-4 sm:mb-6">
+                      <h3 className="text-lg sm:text-xl font-medium text-neutral-800 flex items-center">
+                        <Utensils className="h-5 w-5 text-primary-600 mr-2" />
+                        Diet Plan
+                      </h3>
+                      <Button variant="outline" size="sm" className="hidden sm:flex">
+                        <Download className="h-4 w-4 mr-2" />
+                        Export
+                      </Button>
+                    </div>
+                    
+                    {diet && diet.length > 0 ? (
+                      <div className="space-y-6">
+                        {diet.map((dietPlan: any, index: number) => {
+                          const cardId = `diet-${index}`
+                          const isExpanded = expandedDetails.lifestyleCards[cardId] // Reuse lifestyleCards state
+                          
+                          return (
+                            <div key={index} className="border border-neutral-200 hover:border-neutral-300 rounded-lg transition-all duration-200">
+                              {/* Card Header - Always Visible */}
+                              <div 
+                                className="p-3 sm:p-4 cursor-pointer bg-neutral-50 hover:bg-neutral-100 transition-colors"
+                                onClick={() => {
+                                  setExpandedDetails(prev => ({
+                                    ...prev,
+                                    lifestyleCards: {
+                                      ...prev.lifestyleCards,
+                                      [cardId]: !prev.lifestyleCards[cardId]
+                                    }
+                                  }))
+                                }}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex items-start space-x-2 sm:space-x-3 flex-1 min-w-0">
+                                    <div className="p-1.5 sm:p-2 rounded-full bg-primary-100 flex-shrink-0">
+                                      <Utensils className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary-600" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <h4 className="text-sm sm:text-base font-medium text-neutral-800 capitalize">
+                                        {dietPlan.plan_name || dietPlan.category || 'Diet Plan'}
+                                      </h4>
+                                      <p className="text-xs sm:text-sm text-neutral-600 line-clamp-2 mt-1">
+                                        {dietPlan.reasoning || dietPlan.plan_type || ''}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+                                    {dietPlan.priority && (
+                                      <span className={`hidden sm:inline text-xs px-2 py-1 rounded border whitespace-nowrap ${
+                                        dietPlan.priority === 'essential' ? 'bg-primary-50 text-primary-700 border-primary-200' :
+                                        dietPlan.priority === 'beneficial' ? 'bg-sage-50 text-sage-700 border-sage-200' :
+                                        'bg-neutral-50 text-neutral-600 border-neutral-200'
+                                      }`}>
+                                        {dietPlan.priority}
+                                      </span>
+                                    )}
+                                    {isExpanded ? (
+                                      <ChevronUp className="h-4 w-4 text-neutral-400" />
+                                    ) : (
+                                      <ChevronDown className="h-4 w-4 text-neutral-400" />
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* Expanded Content */}
+                              {isExpanded && (
+                                <div className="border-t border-neutral-200 p-4 bg-white space-y-4">
+                                  {dietPlan.reasoning && (
+                                    <div>
+                                      <h6 className="font-medium text-neutral-800 text-sm mb-1 flex items-center">
+                                        <Info className="h-3 w-3 mr-1" />
+                                        Why this helps
+                                      </h6>
+                                      <ExpandableText
+                                        text={dietPlan.reasoning}
+                                        maxLines={2}
+                                        className="text-sm text-neutral-600"
+                                      />
+                                    </div>
+                                  )}
+                                  
+                                  {dietPlan.specific_foods && dietPlan.specific_foods.length > 0 && (
+                                    <div>
+                                      <h6 className="font-medium text-neutral-800 text-sm mb-2 flex items-center">
+                                        <CheckCircle className="h-3 w-3 mr-1" />
+                                        Foods to Include
+                                      </h6>
+                                      <div className="flex flex-wrap gap-1">
+                                        {dietPlan.specific_foods.map((food: string, idx: number) => (
+                                          <span key={idx} className="inline-block px-2 py-1 bg-emerald-50 rounded text-xs text-emerald-700">
+                                            {food}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {dietPlan.foods_to_avoid && dietPlan.foods_to_avoid.length > 0 && (
+                                    <div>
+                                      <h6 className="font-medium text-neutral-800 text-sm mb-2 flex items-center">
+                                        <AlertCircle className="h-3 w-3 mr-1" />
+                                        Foods to Avoid
+                                      </h6>
+                                      <div className="flex flex-wrap gap-1">
+                                        {dietPlan.foods_to_avoid.map((food: string, idx: number) => (
+                                          <span key={idx} className="inline-block px-2 py-1 bg-red-50 rounded text-xs text-red-700">
+                                            {food}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {dietPlan.target_biomarkers && dietPlan.target_biomarkers.length > 0 && (
+                                    <div>
+                                      <h6 className="font-medium text-neutral-800 text-sm mb-2 flex items-center">
+                                        <Target className="h-3 w-3 mr-1" />
+                                        Target biomarkers
+                                      </h6>
+                                      <div className="flex flex-wrap gap-1">
+                                        {dietPlan.target_biomarkers.map((biomarker: string, idx: number) => (
+                                          <span key={idx} className="inline-block px-2 py-1 bg-neutral-100 rounded text-xs text-neutral-600">
+                                            {biomarker}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {dietPlan.implementation_steps && dietPlan.implementation_steps.length > 0 && (
+                                    <div>
+                                      <h6 className="font-medium text-neutral-800 text-sm mb-2 flex items-center">
+                                        <CheckCircle className="h-3 w-3 mr-1" />
+                                        Implementation steps
+                                      </h6>
+                                      <ol className="list-decimal list-inside text-sm text-neutral-600 space-y-1 ml-2">
+                                        {dietPlan.implementation_steps.map((step: string, stepIdx: number) => (
+                                          <li key={stepIdx}>{step}</li>
+                                        ))}
+                                      </ol>
+                                    </div>
+                                  )}
+
+                                  {dietPlan.portion_guidelines && (
+                                    <div>
+                                      <h6 className="font-medium text-neutral-800 text-sm mb-1 flex items-center">
+                                        <Info className="h-3 w-3 mr-1" />
+                                        Portion Guidelines
+                                      </h6>
+                                      <ExpandableText
+                                        text={dietPlan.portion_guidelines}
+                                        maxLines={2}
+                                        className="text-sm text-neutral-600"
+                                      />
+                                    </div>
+                                  )}
+
+                                  {dietPlan.expected_improvements && (
+                                    <div className="pt-3 border-t border-neutral-100">
+                                      <h6 className="font-medium text-neutral-800 text-sm mb-1 flex items-center">
+                                        <TrendingUp className="h-3 w-3 mr-1" />
+                                        Expected improvements
+                                      </h6>
+                                      <ExpandableText
+                                        text={dietPlan.expected_improvements}
+                                        maxLines={2}
+                                        className="text-sm text-neutral-600"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Utensils className="h-12 w-12 text-neutral-300 mx-auto mb-4" />
+                        <p className="text-neutral-600">No diet recommendations available</p>
+                      </div>
+                    )}
+                  </Card>
+                </div>
+              )}
+
               {activeTab === 'lifestyle' && (
                 <div className="space-y-6">
                   <Card className="p-4 sm:p-6">
@@ -1554,18 +1868,18 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                       </Button>
                     </div>
                     
-                    {analysis.recommendations_summary.lifestyle && analysis.recommendations_summary.lifestyle.length > 0 ? (
+                    {lifestyle && lifestyle.length > 0 ? (
                       <div className="space-y-6">
                         {/* Check if new structure (array of objects) */}
-                        {Array.isArray(analysis.recommendations_summary.lifestyle) && 
-                         analysis.recommendations_summary.lifestyle.length > 0 &&
-                         typeof analysis.recommendations_summary.lifestyle[0] === 'object' && 
-                         analysis.recommendations_summary.lifestyle[0].specific_recommendation ? (
+                        {Array.isArray(lifestyle) && 
+                         lifestyle.length > 0 &&
+                         typeof lifestyle[0] === 'object' && 
+                         lifestyle[0].specific_recommendation ? (
                           // New structure with detailed objects
                           (() => {
-                            const dynamicCategories = getDynamicLifestyleCategories(analysis.recommendations_summary.lifestyle)
+                            const dynamicCategories = getDynamicLifestyleCategories(lifestyle)
                             const lifestyleTabs = [
-                              { id: 'all', label: 'All', icon: Heart, count: analysis.recommendations_summary.lifestyle.length }
+                              { id: 'all', label: 'All', icon: Heart, count: lifestyle.length }
                             ]
                             
                             // Add dynamic category tabs based on actual data
@@ -1615,7 +1929,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                 {/* Lifestyle Content */}
                                 <div className="space-y-4">
                                   {(() => {
-                                    let recommendationsToShow = analysis.recommendations_summary.lifestyle
+                                    let recommendationsToShow = lifestyle
                                     
                                     if (activeLifestyleTab !== 'all') {
                                       recommendationsToShow = dynamicCategories.get(activeLifestyleTab) || []
@@ -1749,10 +2063,10 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                               Lifestyle Recommendations
                             </h4>
                             <div className="grid gap-3">
-                              {analysis.recommendations_summary.lifestyle.map((item: string, index: number) => (
+                              {lifestyle.map((item: any, index: number) => (
                                 <div key={index} className="flex items-start space-x-3 p-4 bg-teal-50 rounded-lg border border-teal-200 hover:bg-teal-100 transition-colors">
                                   <CheckCircle className="h-4 w-4 text-teal-600 mt-0.5 flex-shrink-0" />
-                                  <p className="text-neutral-700 text-sm">{item}</p>
+                                  <p className="text-neutral-700 text-sm">{typeof item === 'string' ? item : item.specific_recommendation || item.recommendation_title || ''}</p>
                                 </div>
                               ))}
                             </div>
@@ -1762,8 +2076,8 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                         {/* Action buttons */}
                         <div className="flex items-center justify-between pt-6 border-t border-neutral-200">
                           <div className="text-sm text-neutral-600">
-                            {Array.isArray(analysis.recommendations_summary.lifestyle) ? 
-                              `${analysis.recommendations_summary.lifestyle.length} lifestyle recommendations` :
+                            {Array.isArray(lifestyle) ? 
+                              `${lifestyle.length} lifestyle recommendations` :
                               'Lifestyle guidance available'
                             }
                           </div>
@@ -1788,6 +2102,143 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                 </div>
               )}
 
+              {activeTab === 'workout' && (
+                <div className="space-y-6">
+                  <Card className="p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-xl font-medium text-neutral-800 flex items-center">
+                        <Dumbbell className="h-5 w-5 text-primary-600 mr-2" />
+                        Workout Plan
+                      </h3>
+                      <Button variant="outline" size="sm">
+                        <Download className="h-4 w-4 mr-2" />
+                        Export
+                      </Button>
+                    </div>
+                    
+                    {workout && workout.length > 0 ? (
+                      <div className="space-y-6">
+                        {workout.map((session: any, index: number) => (
+                          <Card key={index} className="p-5 border-primary-100">
+                            <div className="flex items-start justify-between mb-4">
+                              <div>
+                                <h4 className="text-lg font-semibold text-neutral-800 mb-1">
+                                  {session.exercise_type || `Workout Session ${index + 1}`}
+                                </h4>
+                                {session.day_of_week && (
+                                  <p className="text-sm text-neutral-600">
+                                    Day: {session.day_of_week}
+                                  </p>
+                                )}
+                              </div>
+                              {session.priority && (
+                                <span className={`px-3 py-1 text-xs font-medium rounded-full ${
+                                  session.priority === 'essential' ? 'bg-primary-50 text-primary-700' :
+                                  session.priority === 'beneficial' ? 'bg-sage-50 text-sage-700' :
+                                  'bg-neutral-50 text-neutral-700'
+                                }`}>
+                                  {session.priority}
+                                </span>
+                              )}
+                            </div>
+
+                            {session.specific_exercises && session.specific_exercises.length > 0 && (
+                              <div className="mb-4">
+                                <h5 className="text-sm font-semibold text-neutral-800 mb-2">Exercises</h5>
+                                <div className="flex flex-wrap gap-2">
+                                  {session.specific_exercises.map((exercise: string, idx: number) => (
+                                    <span key={idx} className="px-3 py-1 text-sm rounded-full bg-primary-50 text-primary-700">
+                                      {exercise}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                              {session.intensity && (
+                                <div>
+                                  <p className="text-xs text-neutral-600 mb-1">Intensity</p>
+                                  <p className="text-sm font-medium text-neutral-800 capitalize">{session.intensity}</p>
+                                </div>
+                              )}
+                              {session.duration_minutes && (
+                                <div>
+                                  <p className="text-xs text-neutral-600 mb-1">Duration</p>
+                                  <p className="text-sm font-medium text-neutral-800">{session.duration_minutes} min</p>
+                                </div>
+                              )}
+                              {session.frequency_per_week && (
+                                <div>
+                                  <p className="text-xs text-neutral-600 mb-1">Frequency</p>
+                                  <p className="text-sm font-medium text-neutral-800">{session.frequency_per_week}x/week</p>
+                                </div>
+                              )}
+                              {session.rest_days_between && (
+                                <div>
+                                  <p className="text-xs text-neutral-600 mb-1">Rest Days</p>
+                                  <p className="text-sm font-medium text-neutral-800">{session.rest_days_between} days</p>
+                                </div>
+                              )}
+                            </div>
+
+                            {session.reasoning && (
+                              <div className="mb-4">
+                                <h5 className="text-sm font-semibold text-neutral-800 mb-2">Rationale</h5>
+                                <p className="text-sm text-neutral-600 leading-relaxed">{session.reasoning}</p>
+                              </div>
+                            )}
+
+                            {session.target_biomarkers && session.target_biomarkers.length > 0 && (
+                              <div className="mb-4">
+                                <h5 className="text-sm font-semibold text-neutral-800 mb-2">Target Biomarkers</h5>
+                                <div className="flex flex-wrap gap-2">
+                                  {session.target_biomarkers.map((biomarker: string, idx: number) => (
+                                    <span key={idx} className="px-2 py-1 text-xs rounded-full bg-neutral-100 text-neutral-600">
+                                      {biomarker}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {session.progression_plan && (
+                              <div className="mb-4">
+                                <h5 className="text-sm font-semibold text-neutral-800 mb-2">Progression Plan</h5>
+                                <p className="text-sm text-neutral-600 leading-relaxed">{session.progression_plan}</p>
+                              </div>
+                            )}
+
+                            {session.safety_considerations && session.safety_considerations.length > 0 && (
+                              <div className="mb-4">
+                                <h5 className="text-sm font-semibold text-neutral-800 mb-2">Safety Considerations</h5>
+                                <ul className="list-disc list-inside space-y-1">
+                                  {session.safety_considerations.map((consideration: string, idx: number) => (
+                                    <li key={idx} className="text-sm text-neutral-600">{consideration}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {session.expected_improvements && (
+                              <div className="pt-4 border-t border-neutral-200">
+                                <h5 className="text-sm font-semibold text-neutral-800 mb-2">Expected Improvements</h5>
+                                <p className="text-sm text-neutral-600 leading-relaxed">{session.expected_improvements}</p>
+                              </div>
+                            )}
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Dumbbell className="h-12 w-12 text-neutral-300 mx-auto mb-4" />
+                        <p className="text-neutral-600">No workout recommendations available</p>
+                      </div>
+                    )}
+                  </Card>
+                </div>
+              )}
+
               {activeTab === 'causes' && (
                 <div className="space-y-6">
                   {analysis.root_causes && analysis.root_causes.length > 0 && (
@@ -1802,18 +2253,105 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                               <Brain className="h-4 w-4 text-primary-600" />
                             </div>
                             <div className="flex-1">
-                              <h4 className="font-medium text-neutral-800 mb-1">
-                                {cause.category}
-                              </h4>
+                              <div className="flex items-start justify-between mb-2">
+                                <h4 className="font-medium text-neutral-800">
+                                  {cause.category}
+                                </h4>
+                                {cause.priority && (
+                                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                    cause.priority === 'high' ? 'bg-red-50 text-red-700' :
+                                    cause.priority === 'medium' ? 'bg-yellow-50 text-yellow-700' :
+                                    'bg-neutral-100 text-neutral-600'
+                                  }`}>
+                                    {cause.priority.toUpperCase()}
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-sm text-neutral-600 mb-2">
                                 {cause.description}
                               </p>
-                              <div className="text-xs text-neutral-500">
-                                Affects: {cause.affected_biomarkers.join(', ')}
-                              </div>
+                              {cause.affected_biomarkers && cause.affected_biomarkers.length > 0 && (
+                                <div className="text-xs text-neutral-500 mb-2">
+                                  Affects: {cause.affected_biomarkers.join(', ')}
+                                </div>
+                              )}
+                              {cause.intervention_approach && (
+                                <div className="mt-3 pt-3 border-t border-neutral-200">
+                                  <h5 className="text-xs font-semibold text-neutral-800 mb-1">Intervention Approach</h5>
+                                  <p className="text-sm text-neutral-600 leading-relaxed">{cause.intervention_approach}</p>
+                                </div>
+                              )}
                             </div>
                           </div>
                         ))}
+                      </div>
+                    </Card>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'monitoring' && (
+                <div className="space-y-6">
+                  {analysis.monitoring_plan && (
+                    <Card className="p-6">
+                      <h3 className="text-xl font-medium text-neutral-800 mb-6 flex items-center">
+                        <Calendar className="h-5 w-5 text-primary-600 mr-2" />
+                        Monitoring Plan
+                      </h3>
+                      
+                      <div className="space-y-6">
+                        {analysis.monitoring_plan.retest_timeline && (
+                          <div>
+                            <h4 className="text-sm font-semibold text-neutral-800 mb-2">Retest Timeline</h4>
+                            <p className="text-sm text-neutral-600 bg-primary-50 p-3 rounded-lg border border-primary-100">
+                              {analysis.monitoring_plan.retest_timeline}
+                            </p>
+                          </div>
+                        )}
+
+                        {analysis.monitoring_plan.key_biomarkers_to_track && 
+                         analysis.monitoring_plan.key_biomarkers_to_track.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-semibold text-neutral-800 mb-2">Key Biomarkers to Track</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {analysis.monitoring_plan.key_biomarkers_to_track.map((biomarker: string, index: number) => (
+                                <span key={index} className="px-3 py-1 text-sm rounded-full bg-primary-50 text-primary-700 border border-primary-100">
+                                  {biomarker}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {analysis.monitoring_plan.symptoms_to_monitor && 
+                         analysis.monitoring_plan.symptoms_to_monitor.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-semibold text-neutral-800 mb-2">Symptoms to Monitor</h4>
+                            <div className="space-y-2">
+                              {analysis.monitoring_plan.symptoms_to_monitor.map((symptom: string, index: number) => (
+                                <div key={index} className="flex items-start space-x-2 p-2 bg-yellow-50 rounded-lg border border-yellow-100">
+                                  <AlertCircle className="h-3 w-3 text-yellow-600 flex-shrink-0 mt-0.5" />
+                                  <p className="text-sm text-neutral-700">{symptom}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {analysis.monitoring_plan.success_metrics && 
+                         analysis.monitoring_plan.success_metrics.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-semibold text-neutral-800 mb-2">Success Metrics</h4>
+                            <div className="space-y-2">
+                              {analysis.monitoring_plan.success_metrics.map((metric: string, index: number) => (
+                                <div key={index} className="flex items-start space-x-2 p-2 bg-emerald-50 rounded-lg border border-emerald-100">
+                                  <CheckCircle className="h-3 w-3 text-emerald-600 flex-shrink-0 mt-0.5" />
+                                  <p className="text-sm text-neutral-700">{metric}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </Card>
                   )}
@@ -1868,9 +2406,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                     <div>
                       <div className="font-medium text-neutral-800 text-sm">View Supplements</div>
                       <div className="text-xs text-neutral-600">
-                        {((analysis.recommendations_summary?.supplements?.length || 0) + 
-                          (analysis.recommendations_summary?.essential?.length || 0) + 
-                          (analysis.recommendations_summary?.beneficial?.length || 0))} recommendations
+                        {supplements.length} recommendations
                       </div>
                     </div>
                   </button>
@@ -1885,7 +2421,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                     <div>
                       <div className="font-medium text-neutral-800 text-sm">Lifestyle Plan</div>
                       <div className="text-xs text-neutral-600">
-                        {analysis.recommendations_summary?.lifestyle?.length || 0} recommendations
+                        {lifestyle.length} recommendations
                       </div>
                     </div>
                   </button>
@@ -1944,13 +2480,13 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                   <div className="flex justify-between">
                     <span className="text-neutral-600">Evidence Quality</span>
                     <span className="text-neutral-800 capitalize">
-                      {analysis.evidence_summary.confidence_level}
+                      {analysis.evidence_summary?.confidence_level || 'N/A'}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-neutral-600">References</span>
+                    <span className="text-neutral-600">Limitations</span>
                     <span className="text-neutral-800">
-                      {analysis.evidence_summary.total_references}
+                      {analysis.evidence_summary?.limitations?.length || 0}
                     </span>
                   </div>
                 </div>
