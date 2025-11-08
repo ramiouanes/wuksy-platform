@@ -689,52 +689,100 @@ export default function DocumentsPage() {
 
                   {/* Analysis Summary */}
                   {document.analysis && (
-                    <div className="bg-gradient-to-r from-primary-50 to-sage-50 p-4 rounded-lg mb-4">
-                      <button
-                        onClick={() => setExpandedAnalysis(prev => ({
-                          ...prev,
-                          [document.id]: !prev[document.id]
-                        }))}
-                        className="w-full text-left flex items-center justify-between sm:cursor-default"
-                        aria-expanded={isMobile ? expandedAnalysis[document.id] : true}
-                        aria-label={expandedAnalysis[document.id] ? 'Collapse analysis details' : 'Expand analysis details'}
-                      >
-                        <div>
-                          <h4 className="text-sm font-medium text-neutral-800 mb-1">
-                            Health Analysis Available
-                          </h4>
-                          {isMobile && !expandedAnalysis[document.id] && (
-                            <div className="text-xs text-neutral-600">
-                              Tap to view details
+                    <div className={`p-4 rounded-lg mb-4 ${
+                      document.analysis.status === 'completed' 
+                        ? 'bg-gradient-to-r from-primary-50 to-sage-50'
+                        : document.analysis.status === 'failed'
+                        ? 'bg-red-50'
+                        : 'bg-blue-50'
+                    }`}>
+                      {document.analysis.status === 'completed' ? (
+                        /* Completed Analysis */
+                        <>
+                          <button
+                            onClick={() => setExpandedAnalysis(prev => ({
+                              ...prev,
+                              [document.id]: !prev[document.id]
+                            }))}
+                            className="w-full text-left flex items-center justify-between sm:cursor-default"
+                            aria-expanded={isMobile ? expandedAnalysis[document.id] : true}
+                            aria-label={expandedAnalysis[document.id] ? 'Collapse analysis details' : 'Expand analysis details'}
+                          >
+                            <div>
+                              <h4 className="text-sm font-medium text-neutral-800 mb-1">
+                                Health Analysis Available
+                              </h4>
+                              {isMobile && !expandedAnalysis[document.id] && (
+                                <div className="text-xs text-neutral-600">
+                                  Tap to view details
+                                </div>
+                              )}
+                            </div>
+                            {isMobile && (
+                              <ChevronDown 
+                                className={`h-4 w-4 transition-transform ${
+                                  expandedAnalysis[document.id] ? 'rotate-180' : ''
+                                }`}
+                                aria-hidden="true"
+                              />
+                            )}
+                          </button>
+                          
+                          {(expandedAnalysis[document.id] || !isMobile) && (
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-3 gap-3">
+                              <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-neutral-600">
+                                <span>Score: {document.analysis.overall_health_score}/100</span>
+                                <span className="capitalize">{document.analysis.health_category}</span>
+                                <span className="hidden sm:inline">{formatDate(document.analysis.created_at)}</span>
+                              </div>
+                              <Link href={`/analysis/${document.analysis.id}`} className="w-full sm:w-auto">
+                                <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  <span className="hidden sm:inline">View Analysis</span>
+                                  <span className="sm:hidden">View</span>
+                                </Button>
+                              </Link>
                             </div>
                           )}
-                        </div>
-                        {isMobile && (
-                          <ChevronDown 
-                            className={`h-4 w-4 transition-transform ${
-                              expandedAnalysis[document.id] ? 'rotate-180' : ''
-                            }`}
-                            aria-hidden="true"
-                          />
-                        )}
-                      </button>
-                      
-                      {(expandedAnalysis[document.id] || !isMobile) && (
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-3 gap-3">
-                          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-neutral-600">
-                            <span>Score: {document.analysis.overall_health_score}/100</span>
-                            <span className="capitalize">{document.analysis.health_category}</span>
-                            <span className="hidden sm:inline">{formatDate(document.analysis.created_at)}</span>
+                        </>
+                      ) : document.analysis.status === 'processing' || document.analysis.status === 'pending' ? (
+                        /* Processing State */
+                        <div className="flex items-center space-x-3">
+                          <div className="animate-spin">
+                            <Clock className="h-5 w-5 text-blue-600" />
                           </div>
-                          <Link href={`/analysis/${document.analysis.id}`} className="w-full sm:w-auto">
-                            <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                              <Eye className="mr-2 h-4 w-4" />
-                              <span className="hidden sm:inline">View Analysis</span>
-                              <span className="sm:hidden">View</span>
-                            </Button>
-                          </Link>
+                          <div>
+                            <h4 className="text-sm font-medium text-neutral-800">
+                              Analysis in Progress...
+                            </h4>
+                            <p className="text-xs text-neutral-600 mt-1">
+                              This may take a few minutes
+                            </p>
+                          </div>
                         </div>
-                      )}
+                      ) : document.analysis.status === 'failed' ? (
+                        /* Failed State */
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <AlertCircle className="h-5 w-5 text-red-600" />
+                            <h4 className="text-sm font-medium text-red-800">
+                              Analysis Failed
+                            </h4>
+                          </div>
+                          <p className="text-xs text-red-700">
+                            {document.analysis.processing_errors?.error || 'The analysis encountered an error. Please try again.'}
+                          </p>
+                          <Button
+                            onClick={() => startAnalysis(document.id)}
+                            variant="outline"
+                            size="sm"
+                            className="text-red-700 border-red-300 hover:bg-red-100"
+                          >
+                            <Play className="mr-2 h-4 w-4" />
+                            Retry Analysis
+                          </Button>
+                        </div>
+                      ) : null}
                     </div>
                   )}
 
