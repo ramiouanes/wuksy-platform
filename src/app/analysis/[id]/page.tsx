@@ -682,6 +682,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                       <h3 className="text-xl font-medium text-neutral-800 mb-6">Key Findings</h3>
                       
                       {analysis.overall_health_assessment.priority_concerns && 
+                       Array.isArray(analysis.overall_health_assessment.priority_concerns) &&
                        analysis.overall_health_assessment.priority_concerns.length > 0 && (
                         <div className="mb-6">
                           <h4 className="font-medium text-neutral-800 mb-3 flex items-center">
@@ -700,6 +701,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                       )}
 
                       {analysis.overall_health_assessment.key_strengths && 
+                       Array.isArray(analysis.overall_health_assessment.key_strengths) &&
                        analysis.overall_health_assessment.key_strengths.length > 0 && (
                         <div className="mb-6">
                           <h4 className="font-medium text-neutral-800 mb-3 flex items-center">
@@ -1120,6 +1122,34 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                               </summary>
                                               
                                               <div className="px-4 pb-4 space-y-4 border-t border-neutral-50">
+                                                {/* Priority for Intervention */}
+                                                {insight.priority_for_intervention && insight.priority_for_intervention !== 'low' && (
+                                                  <div className="bg-amber-50 border border-amber-200 rounded p-3">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                      <div className={`w-2 h-2 rounded-full ${
+                                                        insight.priority_for_intervention === 'critical' ? 'bg-red-600' :
+                                                        insight.priority_for_intervention === 'high' ? 'bg-amber-500' :
+                                                        'bg-primary-500'
+                                                      }`} />
+                                                      <h5 className="text-xs font-semibold text-neutral-800">
+                                                        {insight.priority_for_intervention.toUpperCase()} Priority for Intervention
+                                                      </h5>
+                                                    </div>
+                                                  </div>
+                                                )}
+
+                                                {/* Gap Analysis */}
+                                                {insight.gap_analysis && (
+                                                  <div>
+                                                    <h5 className="text-xs font-semibold text-neutral-800 mb-2">Analysis</h5>
+                                                    <ExpandableText
+                                                      text={insight.gap_analysis}
+                                                      maxLines={isMobile ? 3 : 4}
+                                                      className="text-xs text-neutral-600 leading-relaxed"
+                                                    />
+                                                  </div>
+                                                )}
+
                                                 {/* Description */}
                                                 {biomarkerDetails?.description && (
                                                   <div>
@@ -1133,13 +1163,12 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                                 )}
 
                                                 {/* Clinical Significance */}
-                                                {(biomarkerDetails?.clinical_significance || insight.hasInsight) && (
+                                                {(biomarkerDetails?.clinical_significance || insight.clinical_significance || insight.hasInsight) && (
                                                   <div>
                                                     <h5 className="text-xs font-semibold text-neutral-800 mb-2">Clinical Significance</h5>
                                                     <ExpandableText
                                                       text={biomarkerDetails?.clinical_significance || 
                                                        insight.clinical_significance || 
-                                                       insight.functional_medicine_perspective || 
                                                        insight.interpretation ||
                                                        'Clinical significance information not available for this biomarker.'}
                                                       maxLines={isMobile ? 2 : 4}
@@ -1148,12 +1177,36 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                                   </div>
                                                 )}
 
+                                                {/* Functional Medicine Perspective */}
+                                                {insight.functional_medicine_perspective && (
+                                                  <div>
+                                                    <h5 className="text-xs font-semibold text-neutral-800 mb-2">Functional Medicine View</h5>
+                                                    <ExpandableText
+                                                      text={insight.functional_medicine_perspective}
+                                                      maxLines={isMobile ? 2 : 4}
+                                                      className="text-xs text-neutral-600 leading-relaxed"
+                                                    />
+                                                  </div>
+                                                )}
+
+                                                {/* Interconnections */}
+                                                {insight.interconnections && Array.isArray(insight.interconnections) && insight.interconnections.length > 0 && (
+                                                  <div>
+                                                    <h5 className="text-xs font-semibold text-neutral-800 mb-2">Related Biomarkers</h5>
+                                                    <ul className="list-disc list-inside text-xs text-neutral-600 space-y-1 ml-2">
+                                                      {insight.interconnections.map((connection: string, idx: number) => (
+                                                        <li key={idx}>{connection}</li>
+                                                      ))}
+                                                    </ul>
+                                                  </div>
+                                                )}
+
                                                 {/* Recommendations */}
                                                 {(insight.hasInsight && insight.recommendations && insight.recommendations.length > 0) && (
                                                   <div>
                                                     <h5 className="text-xs font-semibold text-neutral-800 mb-2">Recommendations</h5>
                                                     <ul className="list-disc list-inside text-xs text-neutral-600 space-y-1 ml-2">
-                                                      {insight.recommendations.slice(0, 3).map((rec: string, recIndex: number) => (
+                                                      {insight.recommendations.map((rec: string, recIndex: number) => (
                                                         <li key={recIndex}>{rec}</li>
                                                       ))}
                                                     </ul>
@@ -1397,85 +1450,55 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                               
                               {/* Supplement Cards */}
                               <div className="grid gap-4 md:grid-cols-2">
-                              {filteredSupplements.map((supplement: any, index: number) => (
+                              {filteredSupplements.map((supplement: any, index: number) => {
+                                // Map database fields to display format (matching mobile app)
+                                const supplementName = supplement.supplement_name || supplement.name || '';
+                                const dosage = supplement.dosage_amount && supplement.dosage_unit 
+                                  ? `${supplement.dosage_amount}${supplement.dosage_unit}`
+                                  : supplement.dosage || '';
+                                const duration = supplement.duration_weeks 
+                                  ? `${supplement.duration_weeks} weeks`
+                                  : supplement.duration || '';
+                                const monitoring = supplement.monitoring_needed && Array.isArray(supplement.monitoring_needed)
+                                  ? supplement.monitoring_needed.join(', ')
+                                  : supplement.monitoring || '';
+                                const costEstimate = supplement.estimated_monthly_cost 
+                                  ? `$${supplement.estimated_monthly_cost}`
+                                  : supplement.cost_estimate || '';
+                                const reasoning = supplement.reason || supplement.reasoning || '';
+                                const expectedImprovement = supplement.expected_outcome || supplement.expected_improvement || '';
+                                
+                                return (
                                 <Card key={index} className={`group hover:shadow-lg transition-all duration-300 ${config.borderColor} bg-white flex flex-col h-full`}>
                                   {/* Card Header */}
-                                  <div className="p-1 flex-grow">
+                                  <div className="p-4 flex-grow">
                                     <div className="mb-4 min-h-[60px] flex flex-col justify-start">
                                       <div className="flex items-start justify-between mb-2">
                                         <div className="flex-1 pr-2">
                                           <h4 className="text-base font-semibold text-neutral-800 leading-tight">
                                             {(() => {
-                                              const name = supplement.name || '';
-                                              const match = name.match(/^([^(]+)(\(.+\))?$/);
+                                              const match = supplementName.match(/^([^(]+)(\(.+\))?$/);
                                               if (match) {
                                                 const [, mainName] = match;
                                                 return mainName.trim();
                                               }
-                                              return name;
+                                              return supplementName;
                                             })()}
                                           </h4>
                                         </div>
                                         <div className="flex-shrink-0 ml-3 text-right">
-                                          <span 
-                                            className={`px-2 py-1 text-xs font-medium rounded-full ${config.badgeColor} whitespace-nowrap relative group/badge cursor-help flex items-center gap-1`}
-                                            title={(() => {
-                                              const durationText = supplement.duration || '';
-                                              // Replace "then" with "(" and add closing parenthesis
-                                              const formattedText = durationText.replace(' then ', ' (') + (durationText.includes(' then ') ? ')' : '');
-                                              const parts = formattedText.split(' (');
-                                              if (parts.length > 1) {
-                                                const popupText = parts[1].replace(')', '');
-                                                return popupText.charAt(0).toUpperCase() + popupText.slice(1);
-                                              }
-                                              return '';
-                                            })()}
-                                          >
-                                            <span>
-                                              {(() => {
-                                                const durationText = supplement.duration || '';
-                                                // Replace "then" with "(" and add closing parenthesis
-                                                const formattedText = durationText.replace(' then ', ' (') + (durationText.includes(' then ') ? ')' : '');
-                                                const parts = formattedText.split(' (');
-                                                return parts[0];
-                                              })()}
+                                          {duration && (
+                                            <span 
+                                              className={`px-2 py-1 text-xs font-medium rounded-full ${config.badgeColor} whitespace-nowrap`}
+                                            >
+                                              {duration}
                                             </span>
-                                            {(() => {
-                                              const durationText = supplement.duration || '';
-                                              const parts = durationText.split(' then ');
-                                              if (parts.length > 1) {
-                                                return <Repeat className="h-2.5 w-2.5 opacity-70" />;
-                                              }
-                                              return null;
-                                            })()}
-                                            {(() => {
-                                              const durationText = supplement.duration || '';
-                                              // Replace "then" with "(" and add closing parenthesis
-                                              const formattedText = durationText.replace(' then ', ' (') + (durationText.includes(' then ') ? ')' : '');
-                                              const parts = formattedText.split(' (');
-                                              if (parts.length > 1) {
-                                                return (
-                                                  <div className={`absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 ${config.badgeColor} bg-opacity-95 backdrop-blur-sm text-xs font-medium rounded-full shadow-lg border border-white border-opacity-20 whitespace-nowrap opacity-0 group-hover/badge:opacity-100 scale-95 group-hover/badge:scale-100 translate-y-1 group-hover/badge:translate-y-0 transition-all duration-300 ease-out pointer-events-none z-20`}>
-                                                     {(() => {
-                                                       const popupText = parts[1].replace(')', '');
-                                                       return popupText.charAt(0).toUpperCase() + popupText.slice(1);
-                                                     })()}
-                                                    <div className={`absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-3 border-r-3 border-t-3 border-transparent ${
-                                                      config.badgeColor.includes('primary-50') ? 'border-t-primary-50' :
-                                                      config.badgeColor.includes('sage-50') ? 'border-t-sage-50' : 'border-t-neutral-50'
-                                                    } opacity-95`}></div>
-                                                  </div>
-                                                );
-                                              }
-                                              return null;
-                                            })()}
-                                          </span>
+                                          )}
                                         </div>
                                       </div>
                                       <div className="min-h-[16px] flex items-start">
                                         {(() => {
-                                          const name = supplement.name || '';
-                                          const match = name.match(/^([^(]+)(\(.+\))?$/);
+                                          const match = supplementName.match(/^([^(]+)(\(.+\))?$/);
                                           if (match && match[2]) {
                                             return (
                                               <div className="text-xs font-normal text-neutral-500">
@@ -1488,40 +1511,46 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                       </div>
                                     </div>
                                     
-                                    {/* Quick Info */}
-                                    <div className="space-y-3">
-                                      <div className="min-h-[32px] flex items-start justify-between gap-3">
-                                        <span className="text-neutral-500 text-xs font-medium flex-shrink-0">Dosage</span>
-                                        <span className="font-medium text-neutral-700 text-xs text-right leading-relaxed">{supplement.dosage}</span>
-                                      </div>
+                                    {/* Quick Info - Always Visible */}
+                                    <div className="space-y-2 mb-4">
+                                      {dosage && (
+                                        <div className="flex items-start justify-between gap-3">
+                                          <span className="text-neutral-500 text-xs font-medium flex-shrink-0">Dosage</span>
+                                          <span className="font-medium text-neutral-700 text-xs text-right leading-relaxed">{dosage}</span>
+                                        </div>
+                                      )}
                                       {supplement.form && (
-                                        <div className="min-h-[20px] flex items-start justify-between gap-3">
+                                        <div className="flex items-start justify-between gap-3">
                                           <span className="text-neutral-500 text-xs font-medium flex-shrink-0">Form</span>
                                           <span className="font-medium text-neutral-700 text-xs text-right leading-relaxed capitalize">{supplement.form}</span>
                                         </div>
                                       )}
-                                      <div className="min-h-[48px] flex flex-col justify-start">
-                                        <div className="flex items-start justify-between gap-3 mb-1">
-                                          <span className="text-neutral-500 text-xs font-medium flex-shrink-0">Timing</span>
-                                          <span className="font-medium text-neutral-700 text-xs text-right leading-relaxed capitalize">
-                                            {(() => {
-                                              const timing = supplement.timing || '';
-                                              const match = timing.match(/^([^(]+)(\(.+\))?$/);
-                                              if (match) {
-                                                const [, mainTiming] = match;
-                                                return mainTiming.trim();
-                                              }
-                                              return timing;
-                                            })()}
-                                          </span>
+                                      {supplement.frequency && (
+                                        <div className="flex items-start justify-between gap-3">
+                                          <span className="text-neutral-500 text-xs font-medium flex-shrink-0">Frequency</span>
+                                          <span className="font-medium text-neutral-700 text-xs text-right leading-relaxed">{supplement.frequency}</span>
                                         </div>
-                                        <div className="min-h-[16px] flex items-start">
+                                      )}
+                                      {supplement.timing && (
+                                        <div className="flex flex-col justify-start">
+                                          <div className="flex items-start justify-between gap-3 mb-1">
+                                            <span className="text-neutral-500 text-xs font-medium flex-shrink-0">Timing</span>
+                                            <span className="font-medium text-neutral-700 text-xs text-right leading-relaxed capitalize">
+                                              {(() => {
+                                                const match = supplement.timing.match(/^([^(]+)(\(.+\))?$/);
+                                                if (match) {
+                                                  const [, mainTiming] = match;
+                                                  return mainTiming.trim();
+                                                }
+                                                return supplement.timing;
+                                              })()}
+                                            </span>
+                                          </div>
                                           {(() => {
-                                            const timing = supplement.timing || '';
-                                            const match = timing.match(/^([^(]+)(\(.+\))?$/);
+                                            const match = supplement.timing.match(/^([^(]+)(\(.+\))?$/);
                                             if (match && match[2]) {
                                               return (
-                                                <div className="text-xs font-normal text-neutral-500 normal-case">
+                                                <div className="text-xs font-normal text-neutral-500 normal-case text-right">
                                                   {match[2]}
                                                 </div>
                                               );
@@ -1529,43 +1558,60 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                             return null;
                                           })()}
                                         </div>
-                                      </div>
-                                      <div className="min-h-[20px] flex items-start justify-between gap-3">
-                                        <span className="text-neutral-500 text-xs font-medium flex-shrink-0">Frequency</span>
-                                        <span className="font-medium text-neutral-700 text-xs text-right leading-relaxed">{supplement.frequency}</span>
-                                      </div>
-                                      {supplement.cost_estimate && (
-                                        <div className="min-h-[20px] flex items-start justify-between gap-3">
+                                      )}
+                                      {costEstimate && (
+                                        <div className="flex items-start justify-between gap-3">
                                           <span className="text-neutral-500 text-xs font-medium flex-shrink-0">Cost</span>
-                                          <span className="font-medium text-neutral-700 text-xs text-right leading-relaxed">{supplement.cost_estimate}</span>
+                                          <span className="font-medium text-neutral-700 text-xs text-right leading-relaxed">{costEstimate}</span>
                                         </div>
                                       )}
                                     </div>
+
+                                    {/* Reasoning Preview - Always Visible */}
+                                    {reasoning && (
+                                      <div className="mb-4">
+                                        <ExpandableText
+                                          text={reasoning}
+                                          maxLines={2}
+                                          className="text-xs text-neutral-600 leading-relaxed"
+                                        />
+                                      </div>
+                                    )}
                                   </div>
                                   
                                   {/* Expandable Details */}
                                   <div className="border-t border-neutral-100 mt-auto">
                                     <details className="group/details">
                                       <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-neutral-50 transition-colors">
-                                        <span className="text-xs font-medium text-neutral-700">View Details</span>
+                                        <span className="text-xs font-medium text-neutral-700">View More Details</span>
                                         <ChevronDown className="h-3 w-3 text-neutral-500 group-open/details:rotate-180 transition-transform" />
                                       </summary>
                                       
                                       <div className="px-4 pb-4 space-y-4 border-t border-neutral-50">
-                                        {/* Why This Helps */}
-                                        <div>
-                                          <h5 className="text-xs font-semibold text-neutral-800 mb-2">Benefits</h5>
-                                          <ExpandableText
-                                            text={supplement.reasoning}
-                                            maxLines={3}
-                                            className="text-xs text-neutral-600 leading-relaxed"
-                                          />
-                                        </div>
+                                        {/* Full Reasoning */}
+                                        {reasoning && (
+                                          <div>
+                                            <h5 className="text-xs font-semibold text-neutral-800 mb-2">Why This Helps</h5>
+                                            <ExpandableText
+                                              text={reasoning}
+                                              maxLines={isMobile ? 4 : 6}
+                                              className="text-xs text-neutral-600 leading-relaxed"
+                                            />
+                                          </div>
+                                        )}
+                                        
+                                        {/* Duration Details */}
+                                        {duration && (
+                                          <div>
+                                            <h5 className="text-xs font-semibold text-neutral-800 mb-1">Duration</h5>
+                                            <p className="text-xs text-neutral-600">{duration}</p>
+                                          </div>
+                                        )}
                                         
                                         {/* Target Biomarkers */}
-                                        {supplement.target_biomarkers && supplement.target_biomarkers.length > 0 && (
+                                        {supplement.target_biomarkers && Array.isArray(supplement.target_biomarkers) && supplement.target_biomarkers.length > 0 && (
                                           <div>
-                                            <h5 className="text-xs font-semibold text-neutral-800 mb-2">Targets</h5>
+                                            <h5 className="text-xs font-semibold text-neutral-800 mb-2">Target Biomarkers</h5>
                                             <div className="flex flex-wrap gap-1.5">
                                               {supplement.target_biomarkers.map((biomarker: string, idx: number) => (
                                                 <span key={idx} className="inline-block px-2 py-0.5 text-xs rounded-full bg-neutral-100 text-neutral-600">
@@ -1577,41 +1623,43 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                         )}
                                         
                                         {/* Expected Results */}
-                                        {supplement.expected_improvement && (
+                                        {expectedImprovement && (
                                           <div>
                                             <h5 className="text-xs font-semibold text-neutral-800 mb-2">Expected Results</h5>
                                             <ExpandableText
-                                              text={supplement.expected_improvement}
-                                              maxLines={isMobile ? 2 : 3}
+                                              text={expectedImprovement}
+                                              maxLines={isMobile ? 3 : 4}
                                               className="text-xs text-neutral-600 leading-relaxed"
                                             />
                                           </div>
                                         )}
                                         
                                         {/* Safety Information */}
-                                        {(supplement.contraindications || supplement.drug_interactions || supplement.monitoring) && (
+                                        {((supplement.contraindications && Array.isArray(supplement.contraindications) && supplement.contraindications.length > 0) || 
+                                          (supplement.drug_interactions && Array.isArray(supplement.drug_interactions) && supplement.drug_interactions.length > 0) || 
+                                          monitoring) && (
                                           <div className="pt-3 border-t border-neutral-100">
                                             <h5 className="text-xs font-semibold text-neutral-800 mb-2 flex items-center">
                                               <Shield className="h-3 w-3 mr-1.5" />
-                                              Safety Notes
+                                              Safety Information
                                             </h5>
                                             <div className="space-y-2 text-xs text-neutral-600 leading-relaxed">
-                                              {supplement.contraindications && supplement.contraindications.length > 0 && (
+                                              {supplement.contraindications && Array.isArray(supplement.contraindications) && supplement.contraindications.length > 0 && (
                                                 <div>
-                                                  <span className="font-semibold">Avoid if: </span>
+                                                  <span className="font-semibold">Contraindications: </span>
                                                   <span>{supplement.contraindications.join(', ')}</span>
                                                 </div>
                                               )}
-                                              {supplement.drug_interactions && supplement.drug_interactions.length > 0 && (
+                                              {supplement.drug_interactions && Array.isArray(supplement.drug_interactions) && supplement.drug_interactions.length > 0 && (
                                                 <div>
-                                                  <span className="font-semibold">Drug interactions: </span>
+                                                  <span className="font-semibold">Drug Interactions: </span>
                                                   <span>{supplement.drug_interactions.join(', ')}</span>
                                                 </div>
                                               )}
-                                              {supplement.monitoring && (
+                                              {monitoring && (
                                                 <div>
-                                                  <span className="font-semibold">Monitor: </span>
-                                                  <span>{supplement.monitoring}</span>
+                                                  <span className="font-semibold">Monitoring Needed: </span>
+                                                  <span>{monitoring}</span>
                                                 </div>
                                               )}
                                             </div>
@@ -1622,7 +1670,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                     </details>
                                   </div>
                                 </Card>
-                              ))}
+                              )})}
                               </div>
                               
                               {/* Action Section */}
@@ -1750,7 +1798,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                     </div>
                                   )}
                                   
-                                  {dietPlan.specific_foods && dietPlan.specific_foods.length > 0 && (
+                                  {dietPlan.specific_foods && Array.isArray(dietPlan.specific_foods) && dietPlan.specific_foods.length > 0 && (
                                     <div>
                                       <h6 className="font-medium text-neutral-800 text-sm mb-2 flex items-center">
                                         <CheckCircle className="h-3 w-3 mr-1" />
@@ -1766,7 +1814,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                     </div>
                                   )}
 
-                                  {dietPlan.foods_to_avoid && dietPlan.foods_to_avoid.length > 0 && (
+                                  {dietPlan.foods_to_avoid && Array.isArray(dietPlan.foods_to_avoid) && dietPlan.foods_to_avoid.length > 0 && (
                                     <div>
                                       <h6 className="font-medium text-neutral-800 text-sm mb-2 flex items-center">
                                         <AlertCircle className="h-3 w-3 mr-1" />
@@ -1782,7 +1830,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                     </div>
                                   )}
                                   
-                                  {dietPlan.target_biomarkers && dietPlan.target_biomarkers.length > 0 && (
+                                  {dietPlan.target_biomarkers && Array.isArray(dietPlan.target_biomarkers) && dietPlan.target_biomarkers.length > 0 && (
                                     <div>
                                       <h6 className="font-medium text-neutral-800 text-sm mb-2 flex items-center">
                                         <Target className="h-3 w-3 mr-1" />
@@ -1798,11 +1846,31 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                     </div>
                                   )}
                                   
-                                  {dietPlan.implementation_steps && dietPlan.implementation_steps.length > 0 && (
+                                  {(dietPlan.implementation || dietPlan.implementation_guidance) && (
                                     <div>
                                       <h6 className="font-medium text-neutral-800 text-sm mb-2 flex items-center">
                                         <CheckCircle className="h-3 w-3 mr-1" />
-                                        Implementation steps
+                                        How to Implement
+                                      </h6>
+                                      <div className="space-y-2">
+                                        {(dietPlan.implementation || dietPlan.implementation_guidance)
+                                          .split(';')
+                                          .filter((item: string) => item.trim())
+                                          .map((item: string, idx: number) => (
+                                            <div key={idx} className="flex items-start gap-2">
+                                              <span className="text-primary-600 mt-0.5">•</span>
+                                              <p className="text-sm text-neutral-600 flex-1">{item.trim()}</p>
+                                            </div>
+                                          ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {dietPlan.implementation_steps && Array.isArray(dietPlan.implementation_steps) && dietPlan.implementation_steps.length > 0 && (
+                                    <div>
+                                      <h6 className="font-medium text-neutral-800 text-sm mb-2 flex items-center">
+                                        <CheckCircle className="h-3 w-3 mr-1" />
+                                        Implementation Steps
                                       </h6>
                                       <ol className="list-decimal list-inside text-sm text-neutral-600 space-y-1 ml-2">
                                         {dietPlan.implementation_steps.map((step: string, stepIdx: number) => (
@@ -1812,17 +1880,60 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                     </div>
                                   )}
 
-                                  {dietPlan.portion_guidelines && (
+                                  {dietPlan.expected_timeline && (
                                     <div>
-                                      <h6 className="font-medium text-neutral-800 text-sm mb-1 flex items-center">
-                                        <Info className="h-3 w-3 mr-1" />
-                                        Portion Guidelines
+                                      <h6 className="font-medium text-neutral-800 text-sm mb-2 flex items-center">
+                                        <Calendar className="h-3 w-3 mr-1" />
+                                        Expected Timeline
                                       </h6>
-                                      <ExpandableText
-                                        text={dietPlan.portion_guidelines}
-                                        maxLines={2}
-                                        className="text-sm text-neutral-600"
-                                      />
+                                      <div className="space-y-1">
+                                        {dietPlan.expected_timeline
+                                          .split(';')
+                                          .filter((item: string) => item.trim())
+                                          .map((item: string, idx: number) => (
+                                            <p key={idx} className="text-sm text-neutral-600">{item.trim()}</p>
+                                          ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {(dietPlan.portion_guidelines || dietPlan.portion_guidance) && (
+                                    <div>
+                                      <h6 className="font-medium text-neutral-800 text-sm mb-2 flex items-center">
+                                        <Info className="h-3 w-3 mr-1" />
+                                        Portion Guidance
+                                        <div className="ml-2 relative group">
+                                          <Info className="h-3.5 w-3.5 text-neutral-400 cursor-help" />
+                                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-neutral-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-normal w-64 z-10">
+                                            <ExpandableText
+                                              text={dietPlan.portion_guidelines || dietPlan.portion_guidance}
+                                              maxLines={4}
+                                              className="text-white"
+                                              expandText="Show more"
+                                              collapseText="Show less"
+                                            />
+                                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-neutral-800"></div>
+                                          </div>
+                                        </div>
+                                      </h6>
+                                      <div className="space-y-1">
+                                        {(dietPlan.portion_guidelines || dietPlan.portion_guidance)
+                                          .split(';')
+                                          .filter((item: string) => item.trim())
+                                          .slice(0, 2)
+                                          .map((item: string, idx: number) => (
+                                            <p key={idx} className="text-sm text-neutral-600">{item.trim()}</p>
+                                          ))}
+                                        {(dietPlan.portion_guidelines || dietPlan.portion_guidance)
+                                          .split(';')
+                                          .filter((item: string) => item.trim()).length > 2 && (
+                                            <p className="text-xs text-primary-600 italic">
+                                              +{(dietPlan.portion_guidelines || dietPlan.portion_guidance)
+                                                .split(';')
+                                                .filter((item: string) => item.trim()).length - 2} more (hover over info icon for details)
+                                            </p>
+                                          )}
+                                      </div>
                                     </div>
                                   )}
 
@@ -1877,69 +1988,15 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                          lifestyle[0].specific_recommendation ? (
                           // New structure with detailed objects
                           (() => {
-                            const dynamicCategories = getDynamicLifestyleCategories(lifestyle)
-                            const lifestyleTabs = [
-                              { id: 'all', label: 'All', icon: Heart, count: lifestyle.length }
-                            ]
-                            
-                            // Add dynamic category tabs based on actual data
-                            dynamicCategories.forEach((recs, category) => {
-                              if (recs.length > 0) {
-                                lifestyleTabs.push({
-                                  id: category,
-                                  label: formatCategoryName(category),
-                                  icon: getLifestyleCategoryIcon(category),
-                                  count: recs.length
-                                })
-                              }
-                            })
-
                             return (
                               <div>
-                                {/* Lifestyle Sub-tabs */}
-                                <div className="mb-6">
-                                  <div className="overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
-                                    <div className="flex gap-1 bg-neutral-100 p-1 rounded-lg min-w-max sm:min-w-0 sm:flex-wrap">
-                                      {lifestyleTabs.map((tab) => {
-                                        const Icon = tab.icon
-                                        return (
-                                          <button
-                                            key={tab.id}
-                                            onClick={() => setActiveLifestyleTab(tab.id)}
-                                            className={`flex items-center space-x-1.5 sm:space-x-2 px-2 sm:px-3 py-2 rounded-md font-medium text-xs sm:text-sm transition-colors flex-shrink-0 whitespace-nowrap ${
-                                              activeLifestyleTab === tab.id
-                                                ? 'bg-white text-neutral-800 shadow-sm border border-neutral-200'
-                                                : 'text-neutral-600 hover:text-neutral-800 hover:bg-neutral-200/50'
-                                            }`}
-                                          >
-                                            <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                                            <span>{tab.label}</span>
-                                            {tab.count > 0 && tab.id !== 'all' && (
-                                              <span className="text-xs bg-neutral-200 text-neutral-600 px-1.5 py-0.5 rounded-full">
-                                                {tab.count}
-                                              </span>
-                                            )}
-                                          </button>
-                                        )
-                                      })}
-                                    </div>
-                                  </div>
-                                </div>
-
                                 {/* Lifestyle Content */}
                                 <div className="space-y-4">
-                                  {(() => {
-                                    let recommendationsToShow = lifestyle
-                                    
-                                    if (activeLifestyleTab !== 'all') {
-                                      recommendationsToShow = dynamicCategories.get(activeLifestyleTab) || []
-                                    }
-
-                                    return recommendationsToShow.map((item: any, index: number) => {
-                                      const category = item.category?.toLowerCase() || 'lifestyle'
-                                      const Icon = getLifestyleCategoryIcon(category)
-                                      const cardId = `${activeLifestyleTab}-${index}`
-                                      const isExpanded = expandedDetails.lifestyleCards[cardId]
+                                  {lifestyle.map((item: any, index: number) => {
+                                    const category = item.category?.toLowerCase() || 'lifestyle'
+                                    const Icon = getLifestyleCategoryIcon(category)
+                                    const cardId = `lifestyle-${index}`
+                                    const isExpanded = expandedDetails.lifestyleCards[cardId]
                                       
                                       return (
                                         <div key={cardId} className="border border-neutral-200 hover:border-neutral-300 rounded-lg transition-all duration-200">
@@ -1988,6 +2045,16 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                                 />
                                               </div>
                                               
+                                              {item.frequency && (
+                                                <div>
+                                                  <h6 className="font-medium text-neutral-800 text-sm mb-1 flex items-center">
+                                                    <Repeat className="h-3 w-3 mr-1" />
+                                                    Frequency
+                                                  </h6>
+                                                  <p className="text-sm text-neutral-600">{item.frequency}</p>
+                                                </div>
+                                              )}
+                                              
                                               {item.reasoning && (
                                                 <div>
                                                   <h6 className="font-medium text-neutral-800 text-sm mb-1 flex items-center">
@@ -2002,7 +2069,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                                 </div>
                                               )}
                                               
-                                              {item.target_biomarkers && item.target_biomarkers.length > 0 && (
+                                              {item.target_biomarkers && Array.isArray(item.target_biomarkers) && item.target_biomarkers.length > 0 && (
                                                 <div>
                                                   <h6 className="font-medium text-neutral-800 text-sm mb-2 flex items-center">
                                                     <Target className="h-3 w-3 mr-1" />
@@ -2018,7 +2085,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                                 </div>
                                               )}
                                               
-                                              {item.implementation_steps && item.implementation_steps.length > 0 && (
+                                              {item.implementation_steps && Array.isArray(item.implementation_steps) && item.implementation_steps.length > 0 && (
                                                 <div>
                                                   <h6 className="font-medium text-neutral-800 text-sm mb-2 flex items-center">
                                                     <CheckCircle className="h-3 w-3 mr-1" />
@@ -2049,8 +2116,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                           )}
                                         </div>
                                       )
-                                    })
-                                  })()}
+                                    })}
                                 </div>
                               </div>
                             )
@@ -2117,117 +2183,187 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                     </div>
                     
                     {workout && workout.length > 0 ? (
-                      <div className="space-y-6">
-                        {workout.map((session: any, index: number) => (
-                          <Card key={index} className="p-5 border-primary-100">
-                            <div className="flex items-start justify-between mb-4">
-                              <div>
-                                <h4 className="text-lg font-semibold text-neutral-800 mb-1">
-                                  {session.exercise_type || `Workout Session ${index + 1}`}
-                                </h4>
-                                {session.day_of_week && (
-                                  <p className="text-sm text-neutral-600">
-                                    Day: {session.day_of_week}
-                                  </p>
+                      <div className="space-y-4">
+                        {workout.map((session: any, index: number) => {
+                          const workoutCardId = `workout-${index}`
+                          const isExpanded = expandedDetails.lifestyleCards[workoutCardId]
+                          
+                          // Build subtitle from available info
+                          const subtitleParts: string[] = []
+                          if (session.day_of_week) subtitleParts.push(session.day_of_week)
+                          if (session.frequency_per_week) subtitleParts.push(`${session.frequency_per_week}x/week`)
+                          if (session.duration_minutes) subtitleParts.push(`${session.duration_minutes} min`)
+                          const subtitle = subtitleParts.join(' • ') || 'Workout session'
+                          
+                          return (
+                            <Card key={index} className="border border-neutral-200 hover:border-neutral-300 transition-all">
+                              {/* Card Header - Always Visible */}
+                              <div 
+                                className="p-4 cursor-pointer bg-neutral-50 hover:bg-neutral-100 transition-colors"
+                                onClick={() => {
+                                  setExpandedDetails(prev => ({
+                                    ...prev,
+                                    lifestyleCards: {
+                                      ...prev.lifestyleCards,
+                                      [workoutCardId]: !prev.lifestyleCards[workoutCardId]
+                                    }
+                                  }))
+                                }}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex items-start space-x-3 flex-1 min-w-0">
+                                    <div className="p-2 rounded-full bg-primary-100 flex-shrink-0">
+                                      <Dumbbell className="h-4 w-4 text-primary-600" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                        <h4 className="text-base font-semibold text-neutral-800">
+                                          {session.exercise_type || `Workout Session ${index + 1}`}
+                                        </h4>
+                                        {session.priority && (
+                                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                                            session.priority === 'essential' ? 'bg-primary-50 text-primary-700' :
+                                            session.priority === 'beneficial' ? 'bg-sage-50 text-sage-700' :
+                                            'bg-neutral-50 text-neutral-700'
+                                          }`}>
+                                            {session.priority.toUpperCase()}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p className="text-xs text-neutral-600">{subtitle}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex-shrink-0">
+                                    {isExpanded ? (
+                                      <ChevronUp className="h-4 w-4 text-neutral-400" />
+                                    ) : (
+                                      <ChevronDown className="h-4 w-4 text-neutral-400" />
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Reasoning Preview - Always Visible */}
+                                {session.reasoning && (
+                                  <div className="mt-3">
+                                    <ExpandableText
+                                      text={session.reasoning}
+                                      maxLines={2}
+                                      className="text-xs text-neutral-600 leading-relaxed"
+                                    />
+                                  </div>
                                 )}
                               </div>
-                              {session.priority && (
-                                <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                                  session.priority === 'essential' ? 'bg-primary-50 text-primary-700' :
-                                  session.priority === 'beneficial' ? 'bg-sage-50 text-sage-700' :
-                                  'bg-neutral-50 text-neutral-700'
-                                }`}>
-                                  {session.priority}
-                                </span>
+
+                              {/* Expanded Content */}
+                              {isExpanded && (
+                                <div className="border-t border-neutral-200 p-4 bg-white space-y-4">
+                                  {/* Exercises */}
+                                  {session.specific_exercises && Array.isArray(session.specific_exercises) && session.specific_exercises.length > 0 && (
+                                    <div>
+                                      <h6 className="font-medium text-neutral-800 text-sm mb-2">Exercises</h6>
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {session.specific_exercises.map((exercise: string, idx: number) => (
+                                          <span key={idx} className="inline-block px-2 py-1 bg-primary-50 rounded text-xs text-primary-700">
+                                            {exercise}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Workout Details Grid */}
+                                  {(session.intensity || session.duration_minutes || session.frequency_per_week || session.rest_days_between) && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                      {session.intensity && (
+                                        <div>
+                                          <p className="text-xs text-neutral-600 mb-1">Intensity</p>
+                                          <p className="text-sm font-medium text-neutral-800 capitalize">{session.intensity}</p>
+                                        </div>
+                                      )}
+                                      {session.duration_minutes && (
+                                        <div>
+                                          <p className="text-xs text-neutral-600 mb-1">Duration</p>
+                                          <p className="text-sm font-medium text-neutral-800">{session.duration_minutes} min</p>
+                                        </div>
+                                      )}
+                                      {session.frequency_per_week && (
+                                        <div>
+                                          <p className="text-xs text-neutral-600 mb-1">Frequency</p>
+                                          <p className="text-sm font-medium text-neutral-800">{session.frequency_per_week}x/week</p>
+                                        </div>
+                                      )}
+                                      {session.rest_days_between && (
+                                        <div>
+                                          <p className="text-xs text-neutral-600 mb-1">Rest Days</p>
+                                          <p className="text-sm font-medium text-neutral-800">{session.rest_days_between} days</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Progression Plan */}
+                                  {session.progression_plan && (
+                                    <div>
+                                      <h6 className="font-medium text-neutral-800 text-sm mb-1">Progression Plan</h6>
+                                      <ExpandableText
+                                        text={session.progression_plan}
+                                        maxLines={isMobile ? 3 : 4}
+                                        className="text-sm text-neutral-600"
+                                      />
+                                    </div>
+                                  )}
+
+                                  {/* Target Biomarkers */}
+                                  {session.target_biomarkers && Array.isArray(session.target_biomarkers) && session.target_biomarkers.length > 0 && (
+                                    <div>
+                                      <h6 className="font-medium text-neutral-800 text-sm mb-2 flex items-center">
+                                        <Target className="h-3 w-3 mr-1" />
+                                        Target Biomarkers
+                                      </h6>
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {session.target_biomarkers.map((biomarker: string, idx: number) => (
+                                          <span key={idx} className="inline-block px-2 py-1 bg-neutral-100 rounded text-xs text-neutral-600">
+                                            {biomarker}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Safety Considerations */}
+                                  {session.safety_considerations && Array.isArray(session.safety_considerations) && session.safety_considerations.length > 0 && (
+                                    <div>
+                                      <h6 className="font-medium text-neutral-800 text-sm mb-2 flex items-center">
+                                        <Shield className="h-3 w-3 mr-1" />
+                                        Safety Considerations
+                                      </h6>
+                                      <ul className="list-disc list-inside space-y-1 text-sm text-neutral-600 ml-2">
+                                        {session.safety_considerations.map((consideration: string, idx: number) => (
+                                          <li key={idx}>{consideration}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+
+                                  {/* Expected Improvements */}
+                                  {session.expected_improvements && (
+                                    <div className="pt-3 border-t border-neutral-100">
+                                      <h6 className="font-medium text-neutral-800 text-sm mb-1 flex items-center">
+                                        <TrendingUp className="h-3 w-3 mr-1" />
+                                        Expected Improvements
+                                      </h6>
+                                      <ExpandableText
+                                        text={session.expected_improvements}
+                                        maxLines={isMobile ? 3 : 4}
+                                        className="text-sm text-neutral-600"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
                               )}
-                            </div>
-
-                            {session.specific_exercises && session.specific_exercises.length > 0 && (
-                              <div className="mb-4">
-                                <h5 className="text-sm font-semibold text-neutral-800 mb-2">Exercises</h5>
-                                <div className="flex flex-wrap gap-2">
-                                  {session.specific_exercises.map((exercise: string, idx: number) => (
-                                    <span key={idx} className="px-3 py-1 text-sm rounded-full bg-primary-50 text-primary-700">
-                                      {exercise}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                              {session.intensity && (
-                                <div>
-                                  <p className="text-xs text-neutral-600 mb-1">Intensity</p>
-                                  <p className="text-sm font-medium text-neutral-800 capitalize">{session.intensity}</p>
-                                </div>
-                              )}
-                              {session.duration_minutes && (
-                                <div>
-                                  <p className="text-xs text-neutral-600 mb-1">Duration</p>
-                                  <p className="text-sm font-medium text-neutral-800">{session.duration_minutes} min</p>
-                                </div>
-                              )}
-                              {session.frequency_per_week && (
-                                <div>
-                                  <p className="text-xs text-neutral-600 mb-1">Frequency</p>
-                                  <p className="text-sm font-medium text-neutral-800">{session.frequency_per_week}x/week</p>
-                                </div>
-                              )}
-                              {session.rest_days_between && (
-                                <div>
-                                  <p className="text-xs text-neutral-600 mb-1">Rest Days</p>
-                                  <p className="text-sm font-medium text-neutral-800">{session.rest_days_between} days</p>
-                                </div>
-                              )}
-                            </div>
-
-                            {session.reasoning && (
-                              <div className="mb-4">
-                                <h5 className="text-sm font-semibold text-neutral-800 mb-2">Rationale</h5>
-                                <p className="text-sm text-neutral-600 leading-relaxed">{session.reasoning}</p>
-                              </div>
-                            )}
-
-                            {session.target_biomarkers && session.target_biomarkers.length > 0 && (
-                              <div className="mb-4">
-                                <h5 className="text-sm font-semibold text-neutral-800 mb-2">Target Biomarkers</h5>
-                                <div className="flex flex-wrap gap-2">
-                                  {session.target_biomarkers.map((biomarker: string, idx: number) => (
-                                    <span key={idx} className="px-2 py-1 text-xs rounded-full bg-neutral-100 text-neutral-600">
-                                      {biomarker}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {session.progression_plan && (
-                              <div className="mb-4">
-                                <h5 className="text-sm font-semibold text-neutral-800 mb-2">Progression Plan</h5>
-                                <p className="text-sm text-neutral-600 leading-relaxed">{session.progression_plan}</p>
-                              </div>
-                            )}
-
-                            {session.safety_considerations && session.safety_considerations.length > 0 && (
-                              <div className="mb-4">
-                                <h5 className="text-sm font-semibold text-neutral-800 mb-2">Safety Considerations</h5>
-                                <ul className="list-disc list-inside space-y-1">
-                                  {session.safety_considerations.map((consideration: string, idx: number) => (
-                                    <li key={idx} className="text-sm text-neutral-600">{consideration}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-
-                            {session.expected_improvements && (
-                              <div className="pt-4 border-t border-neutral-200">
-                                <h5 className="text-sm font-semibold text-neutral-800 mb-2">Expected Improvements</h5>
-                                <p className="text-sm text-neutral-600 leading-relaxed">{session.expected_improvements}</p>
-                              </div>
-                            )}
-                          </Card>
-                        ))}
+                            </Card>
+                          )
+                        })}
                       </div>
                     ) : (
                       <div className="text-center py-8">
@@ -2241,7 +2377,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
 
               {activeTab === 'causes' && (
                 <div className="space-y-6">
-                  {analysis.root_causes && analysis.root_causes.length > 0 && (
+                  {analysis.root_causes && Array.isArray(analysis.root_causes) && analysis.root_causes.length > 0 && (
                     <Card className="p-6">
                       <h3 className="text-xl font-medium text-neutral-800 mb-6">
                         Potential Root Causes
@@ -2270,7 +2406,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                               <p className="text-sm text-neutral-600 mb-2">
                                 {cause.description}
                               </p>
-                              {cause.affected_biomarkers && cause.affected_biomarkers.length > 0 && (
+                              {cause.affected_biomarkers && Array.isArray(cause.affected_biomarkers) && cause.affected_biomarkers.length > 0 && (
                                 <div className="text-xs text-neutral-500 mb-2">
                                   Affects: {cause.affected_biomarkers.join(', ')}
                                 </div>
@@ -2310,6 +2446,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                         )}
 
                         {analysis.monitoring_plan.key_biomarkers_to_track && 
+                         Array.isArray(analysis.monitoring_plan.key_biomarkers_to_track) &&
                          analysis.monitoring_plan.key_biomarkers_to_track.length > 0 && (
                           <div>
                             <h4 className="text-sm font-semibold text-neutral-800 mb-2">Key Biomarkers to Track</h4>
@@ -2324,6 +2461,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                         )}
 
                         {analysis.monitoring_plan.symptoms_to_monitor && 
+                         Array.isArray(analysis.monitoring_plan.symptoms_to_monitor) &&
                          analysis.monitoring_plan.symptoms_to_monitor.length > 0 && (
                           <div>
                             <h4 className="text-sm font-semibold text-neutral-800 mb-2">Symptoms to Monitor</h4>
@@ -2339,6 +2477,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                         )}
 
                         {analysis.monitoring_plan.success_metrics && 
+                         Array.isArray(analysis.monitoring_plan.success_metrics) &&
                          analysis.monitoring_plan.success_metrics.length > 0 && (
                           <div>
                             <h4 className="text-sm font-semibold text-neutral-800 mb-2">Success Metrics</h4>
@@ -2508,10 +2647,52 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
               <Info className="h-4 w-4 mr-2" />
               Important Medical Disclaimers
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs text-neutral-600">
-              {analysis.disclaimers.map((disclaimer: string, index: number) => (
-                <p key={index}>• {disclaimer}</p>
-              ))}
+            <div className="space-y-4">
+              {/* Static Medical Disclaimers */}
+              <div className="space-y-2 text-xs text-neutral-600">
+                <p className="font-semibold text-neutral-800 mb-2">Important Medical Information:</p>
+                <ul className="space-y-1.5 list-none">
+                  <li className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span>This analysis is for informational purposes only and is not a substitute for professional medical advice, diagnosis, or treatment.</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span>Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span>Never disregard professional medical advice or delay in seeking it because of something you have read in this analysis.</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span>If you think you may have a medical emergency, call your doctor or emergency services immediately.</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span>Individual results may vary. The recommendations provided are based on general guidelines and may not be appropriate for everyone.</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span>Consult with a healthcare professional before starting any new supplement, diet, or exercise program, especially if you have pre-existing medical conditions or are taking medications.</span>
+                  </li>
+                </ul>
+              </div>
+              
+              {/* Analysis-Specific Disclaimers (if any) */}
+              {analysis.disclaimers && Array.isArray(analysis.disclaimers) && analysis.disclaimers.length > 0 && (
+                <div className="pt-4 border-t border-neutral-200">
+                  <p className="font-semibold text-neutral-800 mb-2 text-xs">Additional Notes:</p>
+                  <div className="space-y-1 text-xs text-neutral-600">
+                    {analysis.disclaimers.map((disclaimer: string, index: number) => (
+                      <p key={index} className="flex items-start">
+                        <span className="mr-2">•</span>
+                        <span>{disclaimer}</span>
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </Card>
         </motion.div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 interface ExpandableTextProps {
   /** The text content to display */
@@ -41,23 +41,49 @@ export function ExpandableText({
   defaultExpanded = false
 }: ExpandableTextProps) {
   const [expanded, setExpanded] = useState(defaultExpanded)
+  const [needsExpansion, setNeedsExpansion] = useState(false)
+  const textRef = useRef<HTMLParagraphElement>(null)
   
-  // Generate the line-clamp class dynamically
-  const lineClampClass = expanded ? '' : `line-clamp-${maxLines}`
+  useEffect(() => {
+    if (textRef.current) {
+      const lineHeight = parseInt(getComputedStyle(textRef.current).lineHeight) || 20
+      const maxHeight = lineHeight * maxLines
+      setNeedsExpansion(textRef.current.scrollHeight > maxHeight)
+    }
+  }, [text, maxLines])
+  
+  // Map maxLines to Tailwind classes
+  const lineClampClasses: Record<number, string> = {
+    1: 'line-clamp-1',
+    2: 'line-clamp-2',
+    3: 'line-clamp-3',
+    4: 'line-clamp-4',
+    5: 'line-clamp-5',
+    6: 'line-clamp-6',
+  }
+  
+  const lineClampClass = expanded ? '' : (lineClampClasses[maxLines] || 'line-clamp-3')
+  
+  if (!text) return null
   
   return (
     <div className={className}>
-      <p className={lineClampClass}>
+      <p 
+        ref={textRef}
+        className={lineClampClass}
+      >
         {text}
       </p>
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="text-primary-600 hover:text-primary-700 active:text-primary-800 text-sm mt-2 font-medium transition-colors touch-target"
-        aria-expanded={expanded}
-        aria-label={expanded ? 'Collapse text' : 'Expand text'}
-      >
-        {expanded ? collapseText : expandText}
-      </button>
+      {needsExpansion && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="text-primary-600 hover:text-primary-700 active:text-primary-800 text-sm mt-2 font-medium transition-colors touch-target"
+          aria-expanded={expanded}
+          aria-label={expanded ? 'Collapse text' : 'Expand text'}
+        >
+          {expanded ? collapseText : expandText}
+        </button>
+      )}
     </div>
   )
 }
