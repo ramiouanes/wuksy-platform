@@ -136,6 +136,7 @@ export interface HealthAnalysis {
   id: string
   user_id: string
   document_id?: string
+  status: 'pending' | 'processing' | 'completed' | 'failed'
   overall_health_score: number
   health_category: 'poor' | 'fair' | 'good' | 'excellent'
   biomarker_insights: any[]
@@ -146,6 +147,9 @@ export interface HealthAnalysis {
   demographic_context: any
   evidence_summary: any
   processing_time: number
+  processing_errors?: any
+  last_update_at?: string
+  processing_completed_at?: string
   biomarker_readings?: any[]  // Enhanced biomarker data with detailed info, ranges, and references
   biomarkers_by_category?: Record<string, any[]>  // Biomarkers grouped by category
   created_at: string
