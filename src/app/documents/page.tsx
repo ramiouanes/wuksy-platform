@@ -152,12 +152,13 @@ export default function DocumentsPage() {
     setAnalysisDetails(prev => ({ ...prev, [documentId]: { stage: 'initializing' } }))
     
     try {
+      // Step 1: Trigger analysis via edge function (now proxied)
+      console.log('🚀 [Web] Starting analysis for document:', documentId)
       const response = await fetch('/api/analysis/generate-streaming', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-          'Accept': 'text/stream'
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({ documentId }),
         signal: abortController.signal
@@ -167,144 +168,175 @@ export default function DocumentsPage() {
         throw new Error('Failed to start analysis')
       }
 
-      // Handle streaming response
-      const reader = response.body?.getReader()
-      if (reader) {
+      // Get analysisId from response
+      const result = await response.json()
+      const analysisId = result.analysisId
+      
+      if (!analysisId) {
+        throw new Error('No analysisId received from server')
+      }
+      
+      console.log('✅ [Web] Analysis triggered:', analysisId)
+      
+      // Step 2: Poll for status updates
+      let pollCount = 0
+      const maxPolls = 150 // 150 polls * 2 seconds = 5 minutes max
+      const pollInterval = 2000 // Poll every 2 seconds
+      
+      const poll = async () => {
         try {
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-            
-            const chunk = new TextDecoder().decode(value)
-            const lines = chunk.split('\n').filter(line => line.trim())
-            
-            for (const line of lines) {
-              // Skip heartbeat and empty lines
-              if (line.startsWith(':') || !line.trim()) {
-                continue
-              }
-              
-              try {
-                const update = JSON.parse(line)
-                console.log('Analysis update:', update.status, 'Details:', update.details)
-                
-                // Calculate progress based on the stage
-                let progressPercentage = analysisProgress[documentId] || 0
-                
-                if (update.details?.stage) {
-                  switch (update.details.stage) {
-                    case 'initializing':
-                      progressPercentage = 5
-                      break
-                    case 'biomarker_analysis':
-                      progressPercentage = 25
-                      break
-                    case 'demographic_analysis':
-                      progressPercentage = 35
-                      break
-                    case 'generating_insights':
-                      progressPercentage = 50
-                      break
-                    case 'supplement_analysis':
-                      progressPercentage = 65
-                      break
-                    case 'diet_analysis':
-                      progressPercentage = 75
-                      break
-                    case 'lifestyle_analysis':
-                      progressPercentage = 85
-                      break
-                    case 'saving':
-                      progressPercentage = 90
-                      break
-                    case 'recommendations':
-                      progressPercentage = 95
-                      break
-                    case 'biomarker_update':
-                      progressPercentage = 98
-                      break
-                    case 'complete':
-                      progressPercentage = 100
-                      break
-                    default:
-                      // Incremental progress for unknown stages
-                      progressPercentage = Math.min(progressPercentage + 5, 95)
-                  }
-                } else if (update.status.includes('comprehensive functional medicine analysis')) {
-                  progressPercentage = 10
-                } else if (update.status.includes('Saving')) {
-                  progressPercentage = Math.max(progressPercentage, 90)
-                } else if (update.status.includes('complete')) {
-                  progressPercentage = 100
-                } else {
-                  // Small incremental progress for status updates without stage info
-                  progressPercentage = Math.min(progressPercentage + 2, 95)
-                }
-                
-                // Update progress and status
-                setAnalysisProgress(prev => ({ ...prev, [documentId]: progressPercentage }))
-                setAnalysisStatus(prev => ({ ...prev, [documentId]: update.status }))
-                setAnalysisDetails(prev => ({ ...prev, [documentId]: update.details || {} }))
-                
-                // Check if analysis is complete
-                if (update.status.includes('Analysis complete') || update.details?.stage === 'complete') {
-                  // Clean up and refresh documents
-                  setTimeout(() => {
-                    setAnalysisAbortControllers(prev => {
-                      const next = { ...prev }
-                      delete next[documentId]
-                      return next
-                    })
-                    
-                    // Clean up progress tracking
-                    setAnalysisProgress(prev => {
-                      const next = { ...prev }
-                      delete next[documentId]
-                      return next
-                    })
-                    setAnalysisStatus(prev => {
-                      const next = { ...prev }
-                      delete next[documentId]
-                      return next
-                    })
-                    setAnalysisDetails(prev => {
-                      const next = { ...prev }
-                      delete next[documentId]
-                      return next
-                    })
-                    setExpandedReasoning(prev => {
-                      const next = { ...prev }
-                      delete next[documentId]
-                      return next
-                    })
-                    
-                    // Refresh documents to get the new analysis
-                    fetchDocuments()
-                    
-                    // Remove from analyzing set
-                    setAnalyzingDocuments(prev => {
-                      const next = new Set(prev)
-                      next.delete(documentId)
-                      return next
-                    })
-                  }, 1000)
-                  
-                  return // Exit the streaming loop
-                }
-
-              } catch (e) {
-                // Ignore invalid JSON lines
-                console.warn('Failed to parse analysis update:', e)
-              }
+          if (abortController.signal.aborted) {
+            console.log('⏹️ [Web] Analysis polling cancelled')
+            return
+          }
+          
+          pollCount++
+          
+          if (pollCount > maxPolls) {
+            throw new Error('Analysis timeout (5 minutes)')
+          }
+          
+          // Poll status endpoint
+          const statusResponse = await fetch(
+            `/api/analysis/status?analysisId=${analysisId}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`
+              },
+              signal: abortController.signal
+            }
+          )
+          
+          if (!statusResponse.ok) {
+            console.error('❌ [Web] Status poll failed:', statusResponse.status)
+            setTimeout(poll, pollInterval)
+            return
+          }
+          
+          const status = await statusResponse.json()
+          console.log(`📊 [Web] Poll #${pollCount}:`, status.currentPhase, status.currentMessage)
+          
+          // Calculate progress based on phase
+          let progressPercentage = 0
+          if (status.currentPhase) {
+            switch (status.currentPhase) {
+              case 'queued':
+                progressPercentage = 5
+                break
+              case 'initialization':
+                progressPercentage = 10
+                break
+              case 'data_fetching':
+                progressPercentage = 20
+                break
+              case 'pattern_analysis':
+                progressPercentage = 30
+                break
+              case 'reasoning':
+                progressPercentage = 60
+                break
+              case 'generating':
+                progressPercentage = 80
+                break
+              case 'saving_analysis':
+                progressPercentage = 90
+                break
+              case 'saving_supplements':
+                progressPercentage = 93
+                break
+              case 'saving_diet':
+                progressPercentage = 96
+                break
+              case 'saving_lifestyle':
+                progressPercentage = 98
+                break
+              case 'complete':
+                progressPercentage = 100
+                break
+              default:
+                progressPercentage = Math.min(analysisProgress[documentId] || 0 + 2, 95)
             }
           }
-        } finally {
-          reader.releaseLock()
+          
+          // Update UI
+          setAnalysisProgress(prev => ({ ...prev, [documentId]: progressPercentage }))
+          setAnalysisStatus(prev => ({ 
+            ...prev, 
+            [documentId]: status.currentMessage || 'Processing...' 
+          }))
+          setAnalysisDetails(prev => ({ 
+            ...prev, 
+            [documentId]: { 
+              stage: status.currentPhase,
+              thoughtProcess: status.thoughtProcess,
+              ...status.details 
+            } 
+          }))
+          
+          // Check if complete
+          if (status.status === 'completed') {
+            console.log('✅ [Web] Analysis complete')
+            
+            // Clean up and refresh
+            setTimeout(() => {
+              setAnalysisAbortControllers(prev => {
+                const next = { ...prev }
+                delete next[documentId]
+                return next
+              })
+              
+              setAnalysisProgress(prev => {
+                const next = { ...prev }
+                delete next[documentId]
+                return next
+              })
+              setAnalysisStatus(prev => {
+                const next = { ...prev }
+                delete next[documentId]
+                return next
+              })
+              setAnalysisDetails(prev => {
+                const next = { ...prev }
+                delete next[documentId]
+                return next
+              })
+              setExpandedReasoning(prev => {
+                const next = { ...prev }
+                delete next[documentId]
+                return next
+              })
+              
+              fetchDocuments()
+              
+              setAnalyzingDocuments(prev => {
+                const next = new Set(prev)
+                next.delete(documentId)
+                return next
+              })
+            }, 1000)
+            
+            return
+          } else if (status.status === 'failed') {
+            throw new Error('Analysis failed on server')
+          }
+          
+          // Continue polling
+          setTimeout(poll, pollInterval)
+          
+        } catch (error) {
+          if (error instanceof Error && error.name === 'AbortError') {
+            console.log('⏹️ [Web] Polling aborted')
+            return
+          }
+          console.error('❌ [Web] Poll error:', error)
+          // Continue polling on error (might be transient)
+          setTimeout(poll, pollInterval)
         }
       }
+      
+      // Start polling
+      poll()
 
-      // Refresh documents to show the new analysis
-      await fetchDocuments()
     } catch (error) {
       console.error('Analysis failed:', error)
       

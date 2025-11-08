@@ -1,3 +1,26 @@
+/**
+ * ⚠️ DEPRECATION NOTICE ⚠️
+ * 
+ * This service is DEPRECATED as of 2025-11-08.
+ * 
+ * Analysis now runs in Supabase edge functions for consistency between mobile and web apps.
+ * See: wuksy-backend/supabase/functions/analyze-biomarkers
+ * 
+ * Web app now proxies through:
+ * - /api/analysis/generate-streaming (triggers analysis)
+ * - /api/analysis/status (polls for updates)
+ * 
+ * This file is kept for:
+ * 1. Reference and documentation
+ * 2. Emergency rollback capability
+ * 3. Understanding the analysis logic that was migrated
+ * 
+ * DO NOT MODIFY OR USE IN NEW CODE.
+ * 
+ * Migration completed by: AGENT 6 - Update Web App Integration
+ * Edge function path: wuksy-backend/supabase/functions/analyze-biomarkers/index.ts
+ */
+
 import OpenAI from "openai";
 import { z } from "zod";
 import { zodTextFormat } from "openai/helpers/zod";

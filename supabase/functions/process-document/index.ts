@@ -17,6 +17,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { corsHeaders, handleCorsPrelight, corsResponse, corsErrorResponse } from '../_shared/cors.ts'
 import { createServiceClient } from '../_shared/supabase-client.ts'
+import OpenAI from "jsr:@openai/openai"
 
 /**
  * Helper function to write processing updates to database
@@ -32,22 +33,27 @@ async function writeProcessingUpdate(
   try {
     const supabase = createServiceClient()
     
-    console.log(`📝 [${documentId}] Phase: ${phase} - ${message}`, details || '')
+    const timestamp = new Date().toISOString()
+    console.log(`📝 [${timestamp}] [${documentId}] Writing DB update - Phase: ${phase} - ${message}`)
+    if (details?.thoughtProcess) {
+      console.log(`   💭 ThoughtProcess: ${details.thoughtProcess.substring(0, 100)}...`)
+    }
     
     // Update documents table with latest status
     const updateData: any = {
       status: phase === 'complete' ? 'completed' : phase === 'error' ? 'failed' : 'processing',
+      last_update_at: timestamp
     }
     
     // Add processed_at and processing_completed_at when complete
     if (phase === 'complete') {
-      updateData.processed_at = new Date().toISOString()
-      updateData.processing_completed_at = new Date().toISOString()
+      updateData.processed_at = timestamp
+      updateData.processing_completed_at = timestamp
     }
     
     // Add processing_completed_at on error
     if (phase === 'error') {
-      updateData.processing_completed_at = new Date().toISOString()
+      updateData.processing_completed_at = timestamp
     }
     
     const { error: updateError } = await supabase
@@ -57,6 +63,8 @@ async function writeProcessingUpdate(
     
     if (updateError) {
       console.error(`❌ Failed to update document ${documentId}:`, updateError)
+    } else {
+      console.log(`✅ Document table updated successfully`)
     }
     
     // Insert detailed update into document_processing_updates table
@@ -71,6 +79,8 @@ async function writeProcessingUpdate(
     
     if (insertError) {
       console.error(`❌ Failed to insert processing update for ${documentId}:`, insertError)
+    } else {
+      console.log(`✅ Processing update row inserted successfully`)
     }
     
   } catch (error) {
@@ -197,7 +207,7 @@ async function extractTextFromImage(fileData: Uint8Array): Promise<{
 }
 
 /**
- * Extract biomarkers using OpenAI API with streaming reasoning
+ * Extract biomarkers using OpenAI Responses API with streaming reasoning (GPT-5)
  */
 async function extractBiomarkersWithAI(
   text: string,
@@ -223,6 +233,11 @@ async function extractBiomarkersWithAI(
   })
   
   const model = Deno.env.get('OPENAI_MODEL') || 'gpt-5-mini'
+  
+  // Initialize OpenAI client
+  const openai = new OpenAI({
+    apiKey: openaiApiKey
+  })
   
   const systemPrompt = `You are an expert medical data extraction specialist with deep knowledge of laboratory tests, biomarkers, and medical terminology. Your task is to extract ALL biomarkers and their values from medical documents with maximum accuracy and completeness.
 
@@ -274,139 +289,94 @@ EXTRACTION RULES:
 - Include ALL biomarkers found, even rare or uncommon ones`
 
   try {
-    console.log('📡 Calling OpenAI API with streaming enabled...')
+    console.log('📡 Calling OpenAI Responses API with streaming enabled...')
     
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json'
+    // Use the Responses API with streaming (same as webapp!)
+    const responseStream = await openai.responses.create({
+      model,
+      input: [
+        {
+          role: "system",
+          content: systemPrompt
+        },
+        {
+          role: "user",
+          content: [
+            { type: "input_text", text: userPrompt }
+          ]
+        }
+      ],
+      stream: true,
+      reasoning: {
+        effort: "low", // Low reasoning effort for faster extraction
+        summary: "auto" // Get reasoning summaries
       },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          {
-            role: 'user',
-            content: userPrompt
-          }
-        ],
-        response_format: { type: 'json_object' },
-        stream: true // Enable streaming
-      })
+      text: {
+        format: { type: "json_object" }
+      }
     })
-    
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`OpenAI API failed: ${response.status} ${errorText}`)
-    }
-    
-    if (!response.body) {
-      throw new Error('Response body is null')
-    }
     
     console.log('✅ Stream established, processing chunks...')
     
-    // Process the streaming response
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
     let fullResponse = ''
     let chunkCount = 0
-    let lastUpdateTime = Date.now()
-    const updateInterval = 1500 // Update database every 1.5 seconds
-    let buffer = '' // Buffer for incomplete lines
+    let lastUpdateTime = 0
+    const updateInterval = 400 // Update database every 400ms
+    let currentReasoningText = ''
     
     try {
-      while (true) {
-        const { done, value } = await reader.read()
+      // Process streaming response chunks
+      for await (const chunk of responseStream) {
+        chunkCount++
         
-        if (done) {
-          console.log('✅ Stream complete')
-          break
+        // Handle reasoning summary text streaming (this is what the user sees!)
+        if (chunk.type === 'response.reasoning_summary_text.delta') {
+          const delta = (chunk as any).delta
+          if (delta) {
+            currentReasoningText += delta
+          }
         }
-        
-        // Decode the chunk and add to buffer
-        buffer += decoder.decode(value, { stream: true })
-        
-        // Split by newlines but keep the last incomplete line in buffer
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || '' // Keep the last incomplete line
-        
-        for (const line of lines) {
-          const trimmedLine = line.trim()
-          if (!trimmedLine || trimmedLine === '') continue
-          
-          if (trimmedLine.startsWith('data: ')) {
-            const data = trimmedLine.slice(6).trim()
+        // Handle complete reasoning summary
+        else if (chunk.type === 'response.reasoning_summary_text.done') {
+          const summaryText = (chunk as any).text
+          if (summaryText && summaryText.trim()) {
+            currentReasoningText = summaryText
             
-            // Check for stream end
-            if (data === '[DONE]') {
-              console.log('📡 Received [DONE] signal from OpenAI')
-              continue
-            }
+            // Extract key insight (first sentence for brevity)
+            const firstSentence = summaryText.split(/[.!?]/)[0]?.trim() || summaryText
+            console.log(`🧠 AI reasoning: ${firstSentence}`)
             
-            try {
-              const parsed = JSON.parse(data)
-              const content = parsed.choices?.[0]?.delta?.content
-              
-              if (content) {
-                fullResponse += content
-                chunkCount++
-                
-                // Update database periodically with reasoning progress
-                const now = Date.now()
-                if (now - lastUpdateTime >= updateInterval) {
-                  // Generate user-friendly reasoning text based on progress
-                  const progress = fullResponse.length
-                  let reasoningText = ''
-                  
-                  if (progress < 100) {
-                    reasoningText = 'Analyzing document structure and identifying potential biomarker data...'
-                  } else if (progress < 300) {
-                    reasoningText = 'Reading through lab results and extracting measurement values...'
-                  } else if (progress < 600) {
-                    reasoningText = 'Identifying biomarker names, units, and reference ranges...'
-                  } else if (progress < 1000) {
-                    reasoningText = 'Cross-referencing found biomarkers with medical database...'
-                  } else if (progress < 1500) {
-                    reasoningText = 'Validating extracted values and calculating confidence scores...'
-                  } else {
-                    reasoningText = 'Finalizing biomarker extraction and preparing results...'
-                  }
-                  
-                  // Try to extract partial biomarker count from JSON so far
-                  try {
-                    const biomarkerMatches = fullResponse.match(/"name"\s*:\s*"[^"]+"/g)
-                    if (biomarkerMatches && biomarkerMatches.length > 0) {
-                      reasoningText += ` Found ${biomarkerMatches.length} biomarker${biomarkerMatches.length > 1 ? 's' : ''} so far.`
-                    }
-                  } catch (e) {
-                    // Ignore parsing errors during streaming
-                  }
-                  
-                  await writeProcessingUpdate(
-                    documentId, 
-                    'ai_extraction', 
-                    '🧠 AI is analyzing the document...', 
-                    {
-                      thoughtProcess: reasoningText,
-                      tokensReceived: chunkCount,
-                      progressBytes: fullResponse.length,
-                      status: 'streaming'
-                    }
-                  )
-                  
-                  lastUpdateTime = now
-                  console.log(`📊 Progress: ${chunkCount} tokens, ${fullResponse.length} bytes - ${reasoningText}`)
+            // Write to database - this is the actual AI's thought process
+            const now = Date.now()
+            if (now - lastUpdateTime >= updateInterval) {
+              await writeProcessingUpdate(
+                documentId,
+                'ai_extraction',
+                '🧠 AI is analyzing the document...',
+                {
+                  thoughtProcess: summaryText, // Show full reasoning from AI
+                  chunksReceived: chunkCount,
+                  status: 'reasoning'
                 }
-              }
-            } catch (parseError) {
-              console.error('⚠️ Failed to parse chunk:', trimmedLine.substring(0, 100))
-              // Continue processing other chunks
+              )
+              lastUpdateTime = now
             }
+            
+            currentReasoningText = '' // Reset for next summary
+          }
+        }
+        // Handle output text deltas (the actual JSON response)
+        else if (chunk.type === 'response.output_text.delta') {
+          const delta = (chunk as any).delta
+          if (delta) {
+            fullResponse += delta
+          }
+        }
+        // Handle complete output text
+        else if (chunk.type === 'response.output_text.done') {
+          const outputText = (chunk as any).output_text
+          if (outputText) {
+            fullResponse = outputText
           }
         }
       }
@@ -418,10 +388,10 @@ EXTRACTION RULES:
     console.log('📝 AI response complete, parsing results...')
     console.log('📝 Full response length:', fullResponse.length)
     
-    // Write final update with clean summary
+    // Write final update
     await writeProcessingUpdate(documentId, 'ai_extraction', '🔬 Parsing AI results...', {
-      thoughtProcess: `AI analysis complete! Processing ${chunkCount} tokens of biomarker data. Validating and organizing extracted information...`,
-      totalTokens: chunkCount,
+      thoughtProcess: `AI analysis complete! Processing ${chunkCount} chunks of biomarker data. Validating and organizing extracted information...`,
+      totalChunks: chunkCount,
       totalBytes: fullResponse.length,
       status: 'parsing'
     })

@@ -208,3 +208,5 @@ CREATE TRIGGER trigger_update_document_last_update
 -- FROM pg_policies
 -- WHERE tablename = 'document_processing_updates';
 
+
+
