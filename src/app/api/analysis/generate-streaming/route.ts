@@ -94,27 +94,51 @@ export async function POST(request: NextRequest) {
     const analysisId = analysis.id
     console.log('✅ [Web API] Created analysis record:', analysisId)
 
-    // 6. Trigger Supabase Edge Function (fire and forget - don't await!)
-    const edgeFunctionUrl = `${supabaseUrl}/functions/v1/analyze-biomarkers`
+    // 6. Trigger Supabase Edge Functions in parallel (fire and forget!)
+    const baseUrl = `${supabaseUrl}/functions/v1`
     
-    console.log('🚀 [Web API] Triggering edge function (fire and forget):', edgeFunctionUrl)
+    console.log('🚀 [Web API] Triggering parallel analysis functions...')
     console.log('📊 [Web API] Analysis ID:', analysisId, 'Document ID:', documentId, 'User ID:', user.id)
     
-    fetch(edgeFunctionUrl, {
+    const requestBody = {
+      documentId,
+      userId: user.id,
+      analysisId
+    }
+    
+    const headers = {
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+      'Content-Type': 'application/json'
+    }
+    
+    // PHASE 1: Core analysis (priority - runs first)
+    fetch(`${baseUrl}/analyze-biomarkers-core`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ 
-        documentId, 
-        userId: user.id,
-        analysisId  // Pass the analysisId so edge function doesn't create a new one
-      })
+      headers,
+      body: JSON.stringify(requestBody)
     }).catch(error => {
-      console.error('❌ [Web API] Failed to trigger edge function:', error)
-      // Don't throw - analysis record is created, client can poll for status
+      console.error('❌ [Web API] Core analysis trigger failed:', error)
     })
+    
+    // PHASES 2-5: Parallel analyses (start simultaneously)
+    const parallelFunctions = [
+      'analyze-supplements',
+      'analyze-diet',
+      'analyze-lifestyle',
+      'analyze-workout'
+    ]
+    
+    parallelFunctions.forEach(functionName => {
+      fetch(`${baseUrl}/${functionName}`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody)
+      }).catch(error => {
+        console.error(`❌ [Web API] ${functionName} trigger failed:`, error)
+      })
+    })
+    
+    console.log('✅ [Web API] All analysis functions triggered (5 parallel requests)')
     
     // 7. Return immediately (don't wait for analysis to complete!)
     console.log('✅ [Web API] Returning immediately with analysisId:', analysisId)
@@ -123,7 +147,14 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Analysis started',
       analysisId,
-      status: 'pending'
+      status: 'pending',
+      phases: {
+        core: 'pending',
+        supplements: 'pending',
+        diet: 'pending',
+        lifestyle: 'pending',
+        workout: 'pending'
+      }
     }, { status: 202 })  // 202 Accepted - processing in background
 
   } catch (error) {

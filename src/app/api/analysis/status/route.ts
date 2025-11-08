@@ -57,10 +57,10 @@ export async function GET(request: NextRequest) {
         })
       : createClient(supabaseUrl, supabaseKey)
     
-    // Get analysis record
+    // Get analysis record with phase statuses
     const { data: analysis, error: analysisError } = await supabase
       .from('health_analyses')
-      .select('status, last_update_at, processing_completed_at, processing_errors')
+      .select('status, last_update_at, processing_completed_at, processing_errors, phase_statuses')
       .eq('id', analysisId)
       .single()
     
@@ -105,9 +105,29 @@ export async function GET(request: NextRequest) {
     const latestThoughtUpdate = updates?.slice().reverse().find(u => u.details?.thoughtProcess)
     const thoughtProcess = latestThoughtUpdate?.details?.thoughtProcess
     
+    // Get phase statuses (default if not set)
+    const phaseStatuses = analysis.phase_statuses || {
+      core: 'pending',
+      supplements: 'pending',
+      diet: 'pending',
+      lifestyle: 'pending',
+      workout: 'pending'
+    }
+    
+    // Calculate overall progress based on completed phases
+    const phases = Object.values(phaseStatuses)
+    const completedPhases = phases.filter(p => p === 'completed').length
+    const overallProgress = Math.round((completedPhases / phases.length) * 100)
+    
+    // Check if core is complete (user can view partial results)
+    const coreComplete = phaseStatuses.core === 'completed'
+    
     const responseData = {
       status: analysis.status,
-      progress, // ADD THIS - was missing!
+      progress: overallProgress, // Overall progress based on phases
+      phaseProgress: progress, // Individual phase progress
+      phaseStatuses,
+      coreComplete,
       currentPhase: latestUpdate?.phase || analysis.status,
       currentMessage: latestUpdate?.message || getDefaultMessageForStatus(analysis.status),
       thoughtProcess,
