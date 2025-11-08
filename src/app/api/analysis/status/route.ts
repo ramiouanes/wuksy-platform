@@ -16,16 +16,20 @@ export const maxDuration = 10
  * 
  * Returns:
  * - status: 'pending' | 'processing' | 'completed' | 'failed'
+ * - progress: Progress percentage (0-100)
  * - currentPhase: Current processing phase
  * - currentMessage: Human-readable status message
  * - thoughtProcess: AI reasoning (when available)
  * - details: Additional details
  * - lastUpdate: Timestamp of last update
+ * - updates: Array of all processing updates
  */
 export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url)
     const analysisId = url.searchParams.get('analysisId')
+    
+    console.log('🔍 [Analysis Status API] Request for analysisId:', analysisId)
     
     if (!analysisId) {
       return NextResponse.json(
@@ -60,7 +64,14 @@ export async function GET(request: NextRequest) {
       .eq('id', analysisId)
       .single()
     
+    console.log('📊 [Analysis Status API] Analysis record:', { 
+      found: !!analysis, 
+      status: analysis?.status,
+      error: analysisError?.message 
+    })
+    
     if (analysisError || !analysis) {
+      console.error('❌ [Analysis Status API] Analysis not found:', analysisError)
       return NextResponse.json(
         { error: 'Analysis not found' },
         { status: 404 }
@@ -74,6 +85,12 @@ export async function GET(request: NextRequest) {
       .eq('analysis_id', analysisId)
       .order('created_at', { ascending: true })
     
+    console.log('📝 [Analysis Status API] Processing updates:', {
+      count: updates?.length || 0,
+      error: updatesError?.message,
+      latestPhase: updates?.[updates.length - 1]?.phase
+    })
+    
     if (updatesError && !updatesError.message.includes('relation') && !updatesError.message.includes('does not exist')) {
       console.error('Error fetching updates:', updatesError)
     }
@@ -81,29 +98,64 @@ export async function GET(request: NextRequest) {
     // Get latest update
     const latestUpdate = updates?.[updates.length - 1]
     
+    // Calculate progress from phase (same as document processing)
+    const progress = calculateProgressFromPhase(latestUpdate?.phase || analysis.status)
+    
     // Find the latest update with thoughtProcess (for AI reasoning display)
-    const latestThoughtUpdate = updates?.reverse().find(u => u.details?.thoughtProcess)
+    const latestThoughtUpdate = updates?.slice().reverse().find(u => u.details?.thoughtProcess)
     const thoughtProcess = latestThoughtUpdate?.details?.thoughtProcess
     
-    console.log(`[analysis-status] Analysis ${analysisId}: ${analysis.status}, Latest phase: ${latestUpdate?.phase}, Has thoughtProcess: ${!!thoughtProcess}`)
-    
-    return NextResponse.json({
+    const responseData = {
       status: analysis.status,
-      currentPhase: latestUpdate?.phase,
+      progress, // ADD THIS - was missing!
+      currentPhase: latestUpdate?.phase || analysis.status,
       currentMessage: latestUpdate?.message || getDefaultMessageForStatus(analysis.status),
       thoughtProcess,
       details: latestUpdate?.details || {},
       lastUpdate: latestUpdate?.created_at,
-      analysisId
+      analysisId,
+      updates: updates || []
+    }
+    
+    console.log('✅ [Analysis Status API] Returning:', {
+      status: responseData.status,
+      progress: responseData.progress,
+      currentPhase: responseData.currentPhase,
+      currentMessage: responseData.currentMessage,
+      hasThoughtProcess: !!responseData.thoughtProcess,
+      updatesCount: updates?.length || 0
     })
     
+    return NextResponse.json(responseData)
+    
   } catch (error) {
-    console.error('❌ [Web API] Status error:', error)
+    console.error('❌ [Analysis Status API] Error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     )
   }
+}
+
+function calculateProgressFromPhase(phase?: string): number {
+  const phaseProgress: Record<string, number> = {
+    'pending': 0,
+    'queued': 5,
+    'initialization': 10,
+    'data_fetching': 20,
+    'pattern_analysis': 30,
+    'reasoning': 60,
+    'generating': 80,
+    'saving_analysis': 90,
+    'saving_supplements': 93,
+    'saving_diet': 96,
+    'saving_lifestyle': 98,
+    'complete': 100,
+    'completed': 100,
+    'error': 0,
+    'failed': 0
+  }
+  return phaseProgress[phase || ''] || 0
 }
 
 function getDefaultMessageForStatus(status: string): string {
