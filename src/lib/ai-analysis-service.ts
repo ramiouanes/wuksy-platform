@@ -24,6 +24,7 @@
 import OpenAI from "openai";
 import { z } from "zod";
 import { zodTextFormat } from "openai/helpers/zod";
+import { saveOpenAIUsage, extractUsageFromChunk } from './openai-usage-tracker';
 
 // Type definitions for biomarker analysis
 export interface BiomarkerReading {
@@ -424,6 +425,7 @@ Be specific, practical, and evidence-based. Consider the person's age, gender, a
           }
         ],
         stream: true, // Enable streaming
+        stream_options: { include_usage: true },
         reasoning: {
           effort: "medium", // Let GPT-5 use medium reasoning effort
           summary: "auto" // Get detailed reasoning summaries
@@ -437,6 +439,7 @@ Be specific, practical, and evidence-based. Consider the person's age, gender, a
       let chunkCount = 0;
       let generatedTokens = 0;
       let reasoningTokens = 0;
+      let usageData: { prompt_tokens: number; completion_tokens: number; total_tokens: number } | null = null;
       
       console.log('Processing streaming response...')
       
@@ -522,6 +525,19 @@ Be specific, practical, and evidence-based. Consider the person's age, gender, a
             fullResponse = outputText;
           }
         }
+        
+        // Check for usage data in any chunk
+        const extractedUsage = extractUsageFromChunk(chunk);
+        if (extractedUsage) {
+          usageData = extractedUsage;
+        }
+      }
+      
+      // Save usage data if available (note: user_id would need to be passed to this method)
+      if (usageData) {
+        console.log('📊 Token usage:', usageData);
+        // Note: saveOpenAIUsage would need user_id - this is a deprecated service, so skipping for now
+        // await saveOpenAIUsage({ ... });
       }
       
       // Send any remaining summary text

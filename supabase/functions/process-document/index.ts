@@ -18,6 +18,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { corsHeaders, handleCorsPrelight, corsResponse, corsErrorResponse } from '../_shared/cors.ts'
 import { createServiceClient } from '../_shared/supabase-client.ts'
 import OpenAI from "jsr:@openai/openai"
+import { saveOpenAIUsage, extractUsageFromChunk } from '../_shared/openai-usage-tracker.ts'
 
 /**
  * Helper function to write processing updates to database
@@ -212,7 +213,8 @@ async function extractTextFromImage(fileData: Uint8Array): Promise<{
 async function extractBiomarkersWithAI(
   text: string,
   knownBiomarkers: any[],
-  documentId: string
+  documentId: string,
+  userId: string
 ): Promise<{
   biomarkers: any[]
   documentType: string
@@ -307,6 +309,7 @@ EXTRACTION RULES:
         }
       ],
       stream: true,
+      stream_options: { include_usage: true },
       reasoning: {
         effort: "low", // Low reasoning effort for faster extraction
         summary: "auto" // Get reasoning summaries
@@ -323,6 +326,7 @@ EXTRACTION RULES:
     let lastUpdateTime = 0
     const updateInterval = 400 // Update database every 400ms
     let currentReasoningText = ''
+    let usageData: { prompt_tokens: number; completion_tokens: number; total_tokens: number } | null = null
     
     try {
       // Process streaming response chunks
@@ -379,6 +383,12 @@ EXTRACTION RULES:
             fullResponse = outputText
           }
         }
+        
+        // Check for usage data in any chunk
+        const extractedUsage = extractUsageFromChunk(chunk)
+        if (extractedUsage) {
+          usageData = extractedUsage
+        }
       }
     } catch (streamError) {
       console.error('❌ Stream processing error:', streamError)
@@ -387,6 +397,23 @@ EXTRACTION RULES:
     
     console.log('📝 AI response complete, parsing results...')
     console.log('📝 Full response length:', fullResponse.length)
+    
+    // Save usage data if available
+    if (usageData) {
+      console.log('📊 Token usage:', usageData)
+      await saveOpenAIUsage({
+        user_id: userId,
+        request_type: 'biomarker_extraction',
+        request_id: documentId,
+        model,
+        prompt_tokens: usageData.prompt_tokens,
+        completion_tokens: usageData.completion_tokens,
+        total_tokens: usageData.total_tokens,
+        metadata: { chunk_count: chunkCount, total_bytes: fullResponse.length }
+      }).catch(err => {
+        console.error('⚠️ Failed to save usage (non-critical):', err)
+      })
+    }
     
     // Write final update
     await writeProcessingUpdate(documentId, 'ai_extraction', '🔬 Parsing AI results...', {
@@ -569,7 +596,8 @@ async function processDocumentAsync(
     const aiResult = await extractBiomarkersWithAI(
       extractedText,
       knownBiomarkers || [],
-      documentId
+      documentId,
+      userId
     )
     
     // Step 6: Save biomarkers

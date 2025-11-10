@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { z } from "zod";
 import { zodTextFormat } from "openai/helpers/zod";
+import { saveOpenAIUsage, extractUsageFromChunk } from './openai-usage-tracker';
 
 export interface ExtractedBiomarker {
   biomarker_id?: string | null;
@@ -443,6 +444,7 @@ EXTRACTION RULES:
           }
         ],
         stream: true, // Enable streaming
+        stream_options: { include_usage: true },
         reasoning: {
           effort: "medium", // Let GPT-5 use medium reasoning effort
           summary: "auto" // Get detailed reasoning summaries
@@ -472,6 +474,7 @@ EXTRACTION RULES:
       let chunkCount = 0;
       let generatedTokens = 0;
       let reasoningTokens = 0;
+      let usageData: { prompt_tokens: number; completion_tokens: number; total_tokens: number } | null = null;
       
       console.log('Processing streaming response...')
       
@@ -539,15 +542,28 @@ EXTRACTION RULES:
              generatedTokens += delta.split(' ').length;
            }
          }
-         else if (chunk.type === 'response.output_text.done') {
-           const outputText = (chunk as any).output_text;
-           if (outputText) {
-             fullResponse = outputText;
-           }
-         }
-       }
-       
-       // Send any remaining summary text
+        else if (chunk.type === 'response.output_text.done') {
+          const outputText = (chunk as any).output_text;
+          if (outputText) {
+            fullResponse = outputText;
+          }
+        }
+        
+        // Check for usage data in any chunk
+        const extractedUsage = extractUsageFromChunk(chunk);
+        if (extractedUsage) {
+          usageData = extractedUsage;
+        }
+      }
+      
+      // Save usage data if available (note: user_id would need to be passed to this method)
+      if (usageData) {
+        console.log('📊 Token usage:', usageData);
+        // Note: saveOpenAIUsage would need user_id - this service doesn't have access to it
+        // The usage will be tracked in the backend process-document function instead
+      }
+      
+      // Send any remaining summary text
        if (currentSummaryText.trim()) {
          const summaryText = currentSummaryText.trim();
          reasoningTokens += summaryText.split(' ').length;
