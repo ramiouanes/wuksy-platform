@@ -444,7 +444,6 @@ EXTRACTION RULES:
           }
         ],
         stream: true, // Enable streaming
-        stream_options: { include_usage: true } as any, // Type assertion needed - feature exists at runtime but types not updated yet
         reasoning: {
           effort: "medium", // Let GPT-5 use medium reasoning effort
           summary: "auto" // Get detailed reasoning summaries
@@ -542,12 +541,12 @@ EXTRACTION RULES:
              generatedTokens += delta.split(' ').length;
            }
          }
-        else if (chunk.type === 'response.output_text.done') {
-          const outputText = (chunk as any).output_text;
-          if (outputText) {
-            fullResponse = outputText;
-          }
-        }
+         else if (chunk.type === 'response.output_text.done') {
+           const outputText = (chunk as any).output_text;
+           if (outputText) {
+             fullResponse = outputText;
+           }
+         }
         
         // Check for usage data in any chunk
         const extractedUsage = extractUsageFromChunk(chunk);
@@ -561,9 +560,9 @@ EXTRACTION RULES:
         console.log('📊 Token usage:', usageData);
         // Note: saveOpenAIUsage would need user_id - this service doesn't have access to it
         // The usage will be tracked in the backend process-document function instead
-      }
-      
-      // Send any remaining summary text
+       }
+       
+       // Send any remaining summary text
        if (currentSummaryText.trim()) {
          const summaryText = currentSummaryText.trim();
          reasoningTokens += summaryText.split(' ').length;

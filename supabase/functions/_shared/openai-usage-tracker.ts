@@ -90,30 +90,48 @@ export async function saveOpenAIUsage(params: UsageLogParams): Promise<void> {
 }
 
 /**
- * Extract usage data from OpenAI streaming response chunk
+ * Extract usage data from OpenAI Responses API streaming chunk
  * 
- * Usage data typically appears in the final chunk with type 'response.done'
+ * Usage data appears in the 'response.completed' event (final chunk)
+ * According to: https://blog.robino.dev/posts/openai-responses-api#streaming
+ * 
+ * The Responses API uses input_tokens/output_tokens (not prompt_tokens/completion_tokens)
  */
 export function extractUsageFromChunk(chunk: any): UsageData | null {
-  // Check if chunk has usage directly
+  // Check for response.completed event (final chunk in Responses API)
+  if (chunk.type === 'response.completed') {
+    const completedChunk = chunk as any
+    // Usage is in chunk.response.usage
+    if (completedChunk.response?.usage) {
+      const usage = completedChunk.response.usage
+      // Responses API uses input_tokens/output_tokens, map to prompt/completion
+      return {
+        prompt_tokens: usage.input_tokens || usage.prompt_tokens || 0,
+        completion_tokens: usage.output_tokens || usage.completion_tokens || 0,
+        total_tokens: usage.total_tokens || 0
+      }
+    }
+  }
+  
+  // Fallback: Check if chunk has usage directly (for non-streaming responses)
   if (chunk.usage && typeof chunk.usage === 'object') {
     const usage = chunk.usage
-    if (usage.total_tokens && usage.prompt_tokens !== undefined && usage.completion_tokens !== undefined) {
+    if (usage.total_tokens) {
       return {
-        prompt_tokens: usage.prompt_tokens,
-        completion_tokens: usage.completion_tokens,
+        prompt_tokens: usage.input_tokens || usage.prompt_tokens || 0,
+        completion_tokens: usage.output_tokens || usage.completion_tokens || 0,
         total_tokens: usage.total_tokens
       }
     }
   }
   
-  // Check for usage in response.done chunk
+  // Legacy check for response.done (if still used by some APIs)
   if (chunk.type === 'response.done') {
     const doneChunk = chunk as any
     if (doneChunk.usage && doneChunk.usage.total_tokens) {
       return {
-        prompt_tokens: doneChunk.usage.prompt_tokens || 0,
-        completion_tokens: doneChunk.usage.completion_tokens || 0,
+        prompt_tokens: doneChunk.usage.input_tokens || doneChunk.usage.prompt_tokens || 0,
+        completion_tokens: doneChunk.usage.output_tokens || doneChunk.usage.completion_tokens || 0,
         total_tokens: doneChunk.usage.total_tokens
       }
     }

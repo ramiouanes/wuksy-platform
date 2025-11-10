@@ -309,7 +309,6 @@ EXTRACTION RULES:
         }
       ],
       stream: true,
-      stream_options: { include_usage: true } as any, // Type assertion needed - feature exists at runtime but types not updated yet
       reasoning: {
         effort: "low", // Low reasoning effort for faster extraction
         summary: "auto" // Get reasoning summaries
@@ -383,11 +382,26 @@ EXTRACTION RULES:
             fullResponse = outputText
           }
         }
+        // Handle response.completed event (final event with usage data)
+        else if (chunk.type === 'response.completed') {
+          const completedChunk = chunk as any
+          // This is the final event - contains full response with usage
+          if (completedChunk.response?.usage) {
+            const usage = completedChunk.response.usage
+            usageData = {
+              prompt_tokens: usage.input_tokens || usage.prompt_tokens || 0,
+              completion_tokens: usage.output_tokens || usage.completion_tokens || 0,
+              total_tokens: usage.total_tokens || 0
+            }
+          }
+        }
         
-        // Check for usage data in any chunk
-        const extractedUsage = extractUsageFromChunk(chunk)
-        if (extractedUsage) {
-          usageData = extractedUsage
+        // Check for usage data in any chunk (fallback)
+        if (!usageData) {
+          const extractedUsage = extractUsageFromChunk(chunk)
+          if (extractedUsage) {
+            usageData = extractedUsage
+          }
         }
       }
     } catch (streamError) {
