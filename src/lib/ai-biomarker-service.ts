@@ -444,7 +444,7 @@ EXTRACTION RULES:
           }
         ],
         stream: true, // Enable streaming
-        stream_options: { include_usage: true },
+        stream_options: { include_usage: true } as any, // Type assertion needed - feature exists at runtime but types not updated yet
         reasoning: {
           effort: "medium", // Let GPT-5 use medium reasoning effort
           summary: "auto" // Get detailed reasoning summaries

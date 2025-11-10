@@ -309,7 +309,7 @@ EXTRACTION RULES:
         }
       ],
       stream: true,
-      stream_options: { include_usage: true },
+      stream_options: { include_usage: true } as any, // Type assertion needed - feature exists at runtime but types not updated yet
       reasoning: {
         effort: "low", // Low reasoning effort for faster extraction
         summary: "auto" // Get reasoning summaries
