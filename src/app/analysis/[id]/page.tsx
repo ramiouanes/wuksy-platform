@@ -198,17 +198,16 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
     }))
   }
 
-  // Helper function to sort biomarkers by status priority
+  // Helper function to sort biomarkers by status priority (matching mobile app)
   const getStatusPriority = (status: string | null | undefined) => {
-    switch (status) {
+    if (!status) return 6
+    switch (status.toLowerCase()) {
       case 'deficient': return 1
-      case 'concerning': return 2
-      case 'suboptimal': return 3
-      case 'optimal': return 4
-      case null:
-      case undefined:
-      case 'unknown':
-      default: return 5
+      case 'excess': return 2
+      case 'concerning': return 3
+      case 'suboptimal': return 4
+      case 'optimal': return 5
+      default: return 6
     }
   }
 
@@ -819,11 +818,15 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                           hasInsight: !!insight,
                           hasBiomarkerData: !!reading.biomarkers, // New flag to track if linked to biomarker table
                           
-                          // Enrichment from insight (if available)
+                          // Enrichment from insight (if available) - include ALL fields from mobile app
                           ...(insight && {
-                            // Add insight data but prioritize reading data
+                            // Add all insight data fields to match mobile app
+                            optimal_range: insight.optimal_range,
+                            gap_analysis: insight.gap_analysis,
                             clinical_significance: insight.clinical_significance,
                             functional_medicine_perspective: insight.functional_medicine_perspective,
+                            interconnections: insight.interconnections,
+                            priority_for_intervention: insight.priority_for_intervention,
                             interpretation: insight.interpretation,
                             recommendations: insight.recommendations
                           })
@@ -1013,20 +1016,15 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                   <div className="grid gap-4 md:grid-cols-2">
                                     {biomarkersToShow
                                       .sort((a: any, b: any) => {
-                                        // Sort by data quality: full data first, then limited data, then no analysis
-                                        const aScore = a.hasBiomarkerData && a.hasInsight ? 3 : 
-                                                      a.hasBiomarkerData ? 2 : 
-                                                      a.hasInsight ? 1 : 0
-                                        const bScore = b.hasBiomarkerData && b.hasInsight ? 3 : 
-                                                      b.hasBiomarkerData ? 2 : 
-                                                      b.hasInsight ? 1 : 0
+                                        // Sort by status priority first (matching mobile app)
+                                        const priorityA = getStatusPriority(a.status)
+                                        const priorityB = getStatusPriority(b.status)
                                         
-                                        // Higher score first (better data quality)
-                                        if (aScore !== bScore) {
-                                          return bScore - aScore
+                                        if (priorityA !== priorityB) {
+                                          return priorityA - priorityB
                                         }
                                         
-                                        // If same data quality, sort alphabetically by name
+                                        // If same priority, sort alphabetically by name
                                         const nameA = (a.biomarker_name || a.biomarker || '').toLowerCase()
                                         const nameB = (b.biomarker_name || b.biomarker || '').toLowerCase()
                                         return nameA.localeCompare(nameB)
@@ -1049,14 +1047,10 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                                   <h4 className="text-base font-semibold text-neutral-800 leading-tight">
                                                     {insight.biomarker_name || insight.biomarker}
                                                   </h4>
-                                                  {!insight.hasBiomarkerData && (
+                                                  {/* Only show Limited Data if biomarker has no insight (matching mobile app logic) */}
+                                                  {!insight.hasInsight && (
                                                     <span className="inline-block mt-1 text-xs bg-neutral-200 text-neutral-700 px-2 py-1 rounded">
                                                       Limited Data
-                                                    </span>
-                                                  )}
-                                                  {!insight.hasInsight && insight.hasBiomarkerData && (
-                                                    <span className="inline-block mt-1 text-xs bg-neutral-200 text-neutral-700 px-2 py-1 rounded">
-                                                      No Analysis
                                                     </span>
                                                   )}
                                                 </div>
@@ -1084,16 +1078,43 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                                 </span>
                                               </div>
                                               
-                                              {/* Optimal Range Section */}
-                                              {optimalRanges.length > 0 && (
-                                                <div className="min-h-[20px] flex items-start justify-between gap-3">
-                                                  <span className="text-neutral-500 text-xs font-medium flex-shrink-0">Optimal Range</span>
-                                                  <span className="font-medium text-neutral-700 text-xs text-right leading-relaxed">
-                                                    {(() => {
+                                              {/* Optimal Range Section - prioritize insight.optimal_range, fallback to database ranges */}
+                                              {(insight.optimal_range || optimalRanges.length > 0) && (
+                                                <div className="flex flex-col justify-start">
+                                                  <div className="flex items-start justify-between gap-3 mb-1">
+                                                    <span className="text-neutral-500 text-xs font-medium flex-shrink-0">Optimal Range</span>
+                                                    <span className="font-medium text-neutral-700 text-xs text-right leading-relaxed">
+                                                      {(() => {
+                                                        const rangeValue = insight.optimal_range || (() => {
+                                                          const primaryRange = optimalRanges.find((r: any) => r.is_primary) || optimalRanges[0]
+                                                          return `${formatRangeValue(primaryRange.optimal_min, insight.unit)} - ${formatRangeValue(primaryRange.optimal_max, insight.unit)}`
+                                                        })()
+                                                        // Extract main value and comment (in parentheses)
+                                                        const match = rangeValue.match(/^([^(]+)(\(.+\))?$/)
+                                                        if (match) {
+                                                          const [, mainValue] = match
+                                                          return mainValue.trim()
+                                                        }
+                                                        return rangeValue
+                                                      })()}
+                                                    </span>
+                                                  </div>
+                                                  {(() => {
+                                                    const rangeValue = insight.optimal_range || (() => {
                                                       const primaryRange = optimalRanges.find((r: any) => r.is_primary) || optimalRanges[0]
                                                       return `${formatRangeValue(primaryRange.optimal_min, insight.unit)} - ${formatRangeValue(primaryRange.optimal_max, insight.unit)}`
-                                                    })()}
-                                                  </span>
+                                                    })()
+                                                    // Extract comment in parentheses
+                                                    const match = rangeValue.match(/^([^(]+)(\(.+\))?$/)
+                                                    if (match && match[2]) {
+                                                      return (
+                                                        <div className="text-xs font-normal text-neutral-500 normal-case text-right">
+                                                          {match[2]}
+                                                        </div>
+                                                      )
+                                                    }
+                                                    return null
+                                                  })()}
                                                 </div>
                                               )}
                                               
