@@ -201,7 +201,7 @@ export default function OrderDetailPage() {
                 </div>
 
                 <div className="space-y-4">
-                  {items.map((item) => (
+                  {items?.map((item) => (
                     <div key={item.id} className="flex gap-4 pb-4 border-b border-neutral-100 last:border-0 last:pb-0">
                       <div className="w-20 h-20 bg-neutral-100 rounded-lg flex items-center justify-center flex-shrink-0">
                         <Package className="w-8 h-8 text-neutral-400" />
@@ -228,7 +228,7 @@ export default function OrderDetailPage() {
                 <div className="mt-4 pt-4 border-t border-neutral-200 flex justify-between">
                   <span className="text-sm font-medium text-neutral-700">Partner Subtotal</span>
                   <span className="font-semibold text-neutral-900">
-                    ${items.reduce((sum, item) => sum + item.subtotal, 0).toFixed(2)}
+                    ${items?.reduce((sum, item) => sum + item.subtotal, 0).toFixed(2)}
                   </span>
                 </div>
               </Card>
@@ -242,7 +242,7 @@ export default function OrderDetailPage() {
                   <p className="text-sm font-medium text-blue-900">Partner Fulfillment</p>
                   <p className="text-sm text-blue-700 mt-1">
                     Your supplements will be shipped directly from our partner suppliers.
-                    You'll receive tracking information once each partner processes their items.
+                    You&apos;ll receive tracking information once each partner processes their items.
                   </p>
                 </div>
               </div>

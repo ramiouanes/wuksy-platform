@@ -100,7 +100,7 @@ export default function OrdersPage() {
               No Orders Yet
             </h2>
             <p className="text-neutral-600 mb-6">
-              You haven't placed any orders yet. Start shopping for your supplements!
+              You haven&apos;t placed any orders yet. Start shopping for your supplements!
             </p>
             <Button onClick={() => router.push('/dashboard')} variant="primary">
               Browse Recommendations

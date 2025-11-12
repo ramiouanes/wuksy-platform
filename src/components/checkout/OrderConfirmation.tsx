@@ -175,7 +175,7 @@ export default function OrderConfirmation({
         >
           <p>
             Your supplements will be shipped from our partner suppliers.
-            You'll receive tracking information once your order is processed.
+            You&apos;ll receive tracking information once your order is processed.
           </p>
           
           {/* Countdown Timer */}

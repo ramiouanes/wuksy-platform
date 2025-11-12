@@ -63,18 +63,16 @@ export default function CheckoutWizard() {
     }
   }, [state]);
 
-  // Clear sessionStorage when reaching success and refresh cart
+  // Clear sessionStorage when reaching success and refresh cart when leaving
   useEffect(() => {
     if (state.currentStep === 'success' && typeof window !== 'undefined') {
       sessionStorage.removeItem('checkoutState');
       
-      // Refresh cart after a small delay to ensure success page is fully rendered
-      // This prevents race conditions with the empty cart redirect useEffect
-      const timer = setTimeout(() => {
+      // Refresh cart only when component unmounts (user navigates away)
+      // This ensures OrderConfirmation is fully rendered before cart operations
+      return () => {
         refreshCart();
-      }, 500); // 500ms delay ensures state is fully updated and page is rendered
-      
-      return () => clearTimeout(timer);
+      };
     }
   }, [state.currentStep, refreshCart]);
 
