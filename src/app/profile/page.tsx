@@ -72,7 +72,7 @@ export default function ProfilePage() {
   })
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false) // Start as false, will be set to true when fetching
   const [error, setError] = useState('')
   const [newCondition, setNewCondition] = useState('')
   const [newMedication, setNewMedication] = useState('')
@@ -85,7 +85,7 @@ export default function ProfilePage() {
     if (loading) return
 
     if (!user) {
-      router.push('/auth/signin')
+      router.replace('/auth/signin')
       return
     }
     
@@ -113,7 +113,7 @@ export default function ProfilePage() {
         
         if (response.status === 401) {
           // Unauthorized, redirect to signin
-          router.push('/auth/signin')
+          router.replace('/auth/signin')
           return
         }
 
@@ -181,7 +181,7 @@ export default function ProfilePage() {
 
       if (response.status === 401) {
         // Unauthorized, redirect to signin
-        router.push('/auth/signin')
+        router.replace('/auth/signin')
         return
       }
 

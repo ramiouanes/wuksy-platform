@@ -24,7 +24,7 @@ import Card from '@/components/ui/Card'
 import { ExpandableText } from '@/components/ui/ExpandableText'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/client'
 
 interface Analysis {
   id: string
@@ -50,7 +50,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const [analyses, setAnalyses] = useState<Analysis[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false) // Start as false, will be set to true when fetching
   const [showSupport, setShowSupport] = useState(false)
   
   // Mobile responsiveness hooks
@@ -58,13 +58,17 @@ export default function DashboardPage() {
   const breakpoint = useBreakpoint()
   const isMobile = breakpoint === 'xs' || breakpoint === 'sm'
 
+  // Simplified auth guards - middleware already checked auth
   useEffect(() => {
+    // Only redirect if we're sure there's no user (not during initial load)
     if (!loading && !user) {
-      router.push('/auth/signin')
+      console.log('Dashboard: No user, redirecting to signin')
+      router.replace('/auth/signin')
     }
   }, [user, loading, router])
 
   useEffect(() => {
+    // Fetch data when we have user and session
     if (user && session) {
       fetchDashboardData()
     }
@@ -74,20 +78,11 @@ export default function DashboardPage() {
     if (!session?.access_token) return
 
     try {
-      // Create Supabase client with user's token
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      
-      const userSupabase = createClient(supabaseUrl, supabaseKey, {
-        global: {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        },
-      })
+      // Use the new client - it automatically handles sessions from cookies
+      const supabase = createClient()
 
       // Fetch user's analyses
-      const { data: analysesData, error: analysesError } = await userSupabase
+      const { data: analysesData, error: analysesError } = await supabase
         .from('health_analyses')
         .select(`
           id,
@@ -114,7 +109,7 @@ export default function DashboardPage() {
       }
 
       // Fetch documents with biomarker counts for additional stats
-      const { data: documentsData, error: documentsError } = await userSupabase
+      const { data: documentsData, error: documentsError } = await supabase
         .from('documents')
         .select(`
           id, 
@@ -187,7 +182,8 @@ export default function DashboardPage() {
     }
   }
 
-  if (loading || isLoading) {
+  // Show loading only if auth is loading OR data is loading (but we have a user)
+  if (loading || (isLoading && user)) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
         <div className="animate-pulse">
@@ -197,6 +193,7 @@ export default function DashboardPage() {
     )
   }
 
+  // If not loading and no user, don't render (redirect will happen)
   if (!user) {
     return null
   }

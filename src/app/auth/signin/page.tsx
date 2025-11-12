@@ -41,21 +41,20 @@ function SignInForm() {
     console.log('🔄 Sign-in attempt started...', { email: formData.email })
 
     try {
-      const result = await signIn(formData.email, formData.password)
-      console.log('✅ Sign-in successful:', result)
+      await signIn(formData.email, formData.password)
+      console.log('✅ Sign-in successful')
       
-      // Small delay to ensure session is established
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
+      // No delay needed - session is now in cookies
+      // Middleware handles refresh, AuthProvider syncs immediately
       console.log('🔄 Redirecting to dashboard...')
-      router.push('/dashboard')
+      router.replace('/dashboard')  // Use replace instead of push
+      
     } catch (err: any) {
       console.error('❌ Sign-in error:', err)
       setError(err.message || 'An error occurred during sign in')
-    } finally {
-      console.log('🔄 Sign-in process completed, stopping loading...')
-      setIsLoading(false)
+      setIsLoading(false)  // Only reset loading on error
     }
+    // Don't reset loading on success - let navigation complete
   }
 
   const handleSocialLogin = async (provider: 'google' | 'facebook') => {

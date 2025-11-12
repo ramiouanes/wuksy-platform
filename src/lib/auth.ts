@@ -1,5 +1,8 @@
-import { supabase } from './supabase'
-import { User } from './supabase'
+import { createClient } from '@/lib/supabase/client'
+import { User } from '@/lib/supabase/types'
+
+// Create client instance
+const supabase = createClient()
 
 export async function signUp(email: string, password: string, name: string, dataConsent: boolean = true, researchConsent: boolean = false) {
   const { data, error } = await supabase.auth.signUp({

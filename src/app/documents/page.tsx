@@ -32,8 +32,8 @@ import {
 } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
-import { createClient } from '@supabase/supabase-js'
-import { DocumentWithBiomarkers, BiomarkerReading, HealthAnalysis } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
+import { DocumentWithBiomarkers, BiomarkerReading, HealthAnalysis } from '@/lib/supabase/types'
 
 interface DocumentWithAnalysis extends DocumentWithBiomarkers {
   analysis?: HealthAnalysis
@@ -46,7 +46,7 @@ export default function DocumentsPage() {
   const prefersReducedMotion = useReducedMotion()
   const isMobile = breakpoint === 'xs' || breakpoint === 'sm'
   const [documents, setDocuments] = useState<DocumentWithAnalysis[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false) // Start as false, will be set to true when fetching
   const [analyzingDocuments, setAnalyzingDocuments] = useState<Set<string>>(new Set())
   const [analysisProgress, setAnalysisProgress] = useState<{[key: string]: number}>({})
   const [analysisStatus, setAnalysisStatus] = useState<{[key: string]: string}>({})
@@ -57,13 +57,17 @@ export default function DocumentsPage() {
 
   const [analysisAbortControllers, setAnalysisAbortControllers] = useState<{[key: string]: AbortController}>({})
 
+  // Simplified auth guards - middleware already checked auth
   useEffect(() => {
+    // Only redirect if we're sure there's no user (not during initial load)
     if (!loading && !user) {
-      router.push('/auth/signin')
+      console.log('Documents: No user, redirecting to signin')
+      router.replace('/auth/signin')
     }
   }, [user, loading, router])
 
   useEffect(() => {
+    // Fetch data when we have user and session
     if (user && session) {
       fetchDocuments()
     }
@@ -73,19 +77,11 @@ export default function DocumentsPage() {
     if (!session?.access_token) return
 
     try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      
-      const userSupabase = createClient(supabaseUrl, supabaseKey, {
-        global: {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        },
-      })
+      // Use the new client - it automatically handles sessions from cookies
+      const supabase = createClient()
 
       // Fetch documents with their biomarker readings and analyses
-      const { data: documentsData, error: documentsError } = await userSupabase
+      const { data: documentsData, error: documentsError } = await supabase
         .from('documents')
         .select(`
           *,
@@ -112,7 +108,7 @@ export default function DocumentsPage() {
 
       // Fetch analyses for each document
       const documentIds = documentsData?.map(d => d.id) || []
-      const { data: analysesData, error: analysesError } = await userSupabase
+      const { data: analysesData, error: analysesError } = await supabase
         .from('health_analyses')
         .select('*')
         .in('document_id', documentIds)
@@ -543,7 +539,8 @@ export default function DocumentsPage() {
     })
   }
 
-  if (loading || isLoading) {
+  // Show loading only if auth is loading OR data is loading (but we have a user)
+  if (loading || (isLoading && user)) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
         <div className="animate-pulse">
@@ -553,6 +550,7 @@ export default function DocumentsPage() {
     )
   }
 
+  // If not loading and no user, don't render (redirect will happen)
   if (!user) {
     return null
   }

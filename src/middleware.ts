@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { updateSession } from '@/lib/supabase/middleware'
 
 // SECURE BY DEFAULT: Only these routes are accessible without admin authentication
 // Everything else requires the admin password
@@ -11,6 +12,11 @@ const PUBLIC_ROUTES = [
   '/api/admin/login',     // Admin login endpoint
   '/api/admin/logout',    // Admin logout endpoint  
   '/api/admin/check',     // Admin auth check endpoint
+  '/auth/signin',         // User signin page
+  '/auth/signup',         // User signup page
+  '/auth/callback',       // OAuth callback
+  '/how-it-works',        // Public info page
+  '/biomarkers',          // Public info page
 ]
 
 // Protected admin routes that require authentication
@@ -33,7 +39,7 @@ const STATIC_ASSETS_PATTERNS = [
   '/api/_next/',
 ]
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Skip middleware for static assets and Next.js internals
@@ -41,10 +47,13 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Allow explicitly public routes
+  // Update Supabase session (CRITICAL - refreshes auth tokens)
+  const { supabaseResponse, user } = await updateSession(request)
+
+  // Allow explicitly public routes (but still refresh session if exists)
   const isPublicRoute = PUBLIC_ROUTES.includes(pathname)
   if (isPublicRoute) {
-    return NextResponse.next()
+    return supabaseResponse
   }
 
   // Check for Bearer token authentication (for mobile app API access)
@@ -55,7 +64,7 @@ export function middleware(request: NextRequest) {
   if (hasBearerToken && pathname.startsWith('/api/')) {
     // Has Bearer token - allow through to API route for JWT validation
     // The API routes will validate the Supabase JWT token
-    return NextResponse.next()
+    return supabaseResponse
   }
 
   // Check if this is an admin route
@@ -80,30 +89,30 @@ export function middleware(request: NextRequest) {
     }
     
     // Authenticated - allow access
-    return NextResponse.next()
+    return supabaseResponse
   }
 
-  // ALL OTHER ROUTES (app routes) ALSO REQUIRE ADMIN AUTHENTICATION (secure by default)
-  // This is secure by default - any new route automatically requires auth
+  // For user app routes (dashboard, documents, etc.) - check Supabase session OR admin auth
+  // Admin auth cookie also grants access to user routes
   const adminAuth = request.cookies.get('admin-auth')
+  const hasAdminAccess = adminAuth?.value === 'true'
 
-  if (!adminAuth || adminAuth.value !== 'true') {
-    // Not authenticated
-    // For API routes, return 401 Unauthorized
+  if (!user && !hasAdminAccess) {
+    // Not authenticated - no Supabase session and no admin access
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(
-        { error: 'Admin authentication required' },
+        { error: 'Authentication required' },
         { status: 401 }
       )
     }
     
-    // For page routes, redirect to coming-soon page
-    const comingSoonUrl = new URL('/coming-soon', request.url)
-    return NextResponse.redirect(comingSoonUrl)
+    // For page routes, redirect to signin
+    const signInUrl = new URL('/auth/signin', request.url)
+    return NextResponse.redirect(signInUrl)
   }
 
-  // Authenticated - allow access
-  return NextResponse.next()
+  // Authenticated (either as user or admin) - allow access
+  return supabaseResponse
 }
 
 // Configure which routes use this middleware

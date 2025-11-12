@@ -1,22 +1,10 @@
 /**
- * DEPRECATED: Backward compatibility shim
- * 
- * This file is maintained for backward compatibility.
- * New code should import from:
- * - '@/lib/supabase/client' for browser client
- * - '@/lib/supabase/server' for server client
- * - '@/lib/supabase/types' for TypeScript types
- * 
- * This creates a browser client using the old pattern.
- * It will be gradually phased out.
+ * Supabase Database Types
+ * TypeScript interfaces for all database tables and relationships
  */
 
-import { createClient as createBrowserClient } from '@/lib/supabase/client'
+// ============= USER TYPES =============
 
-// Create a client instance for backward compatibility
-export const supabase = createBrowserClient()
-
-// Types for our database
 export interface User {
   id: string
   email: string
@@ -48,6 +36,8 @@ export interface UserDemographicProfile {
   created_at: string
   updated_at: string
 }
+
+// ============= BIOMARKER TYPES =============
 
 export interface Biomarker {
   id: string
@@ -135,6 +125,28 @@ export interface BiomarkersResponse {
   }
 }
 
+export interface BiomarkerReading {
+  id: string
+  user_id: string
+  document_id: string
+  analysis_id?: string
+  biomarker_id?: string
+  biomarker_name: string
+  value: number
+  unit: string
+  category: string
+  reference_range?: string
+  status?: 'deficient' | 'suboptimal' | 'optimal' | 'excess' | 'concerning'
+  severity?: 'mild' | 'moderate' | 'severe'
+  confidence: number
+  matched_from_db: boolean
+  source_text?: string
+  extracted_at: string
+  created_at: string
+}
+
+// ============= ANALYSIS TYPES =============
+
 export interface HealthAnalysis {
   id: string
   user_id: string
@@ -153,8 +165,8 @@ export interface HealthAnalysis {
   processing_errors?: any
   last_update_at?: string
   processing_completed_at?: string
-  biomarker_readings?: any[]  // Enhanced biomarker data with detailed info, ranges, and references
-  biomarkers_by_category?: Record<string, any[]>  // Biomarkers grouped by category
+  biomarker_readings?: any[]
+  biomarkers_by_category?: Record<string, any[]>
   overall_health_assessment?: {
     health_score: number
     health_category: 'poor' | 'fair' | 'good' | 'excellent'
@@ -171,6 +183,8 @@ export interface HealthAnalysis {
   created_at: string
   updated_at: string
 }
+
+// ============= DOCUMENT TYPES =============
 
 export interface Document {
   id: string
@@ -189,6 +203,21 @@ export interface Document {
   extraction_method?: 'ai_enhanced' | 'pattern_matching' | 'failed'
   document_type?: string
 }
+
+export interface DocumentWithBiomarkers {
+  id: string
+  user_id: string
+  filename: string
+  filesize: number
+  mimetype: string
+  uploaded_at: string
+  processed_at?: string
+  status: 'uploading' | 'processing' | 'completed' | 'failed'
+  biomarker_readings: BiomarkerReading[]
+  analysis?: HealthAnalysis
+}
+
+// ============= RECOMMENDATION TYPES =============
 
 export interface SupplementRecommendation {
   id: string
@@ -308,38 +337,3 @@ export interface LifestyleRecommendation {
   created_at: string
 }
 
-export interface BiomarkerReading {
-  id: string
-  user_id: string
-  document_id: string
-  analysis_id?: string
-  biomarker_id?: string
-  biomarker_name: string
-  value: number
-  unit: string
-  category: string
-  reference_range?: string
-  status?: 'deficient' | 'suboptimal' | 'optimal' | 'excess' | 'concerning'
-  severity?: 'mild' | 'moderate' | 'severe'
-  confidence: number
-  matched_from_db: boolean
-  source_text?: string
-  extracted_at: string
-  created_at: string
-}
-
-export interface DocumentWithBiomarkers {
-  id: string
-  user_id: string
-  filename: string
-  filesize: number
-  mimetype: string
-  uploaded_at: string
-  processed_at?: string
-  status: 'uploading' | 'processing' | 'completed' | 'failed'
-  biomarker_readings: BiomarkerReading[]
-  analysis?: HealthAnalysis
-}
-
-// Re-export all types from the new location for convenience
-export type * from '@/lib/supabase/types'

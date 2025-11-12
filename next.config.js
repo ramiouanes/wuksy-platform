@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Output configuration for Netlify deployment
-  output: 'standalone',
+  // Note: 'output: standalone' removed - not needed for Netlify
+  // Netlify has its own optimization via @netlify/plugin-nextjs
   
   experimental: {
     swcPlugins: [],

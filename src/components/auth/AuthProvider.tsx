@@ -1,9 +1,9 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
 import { User as SupabaseUser, Session } from '@supabase/supabase-js'
-import { supabase, User } from '@/lib/supabase'
-import { getCurrentUser, signOut as authSignOut } from '@/lib/auth'
+import { createClient } from '@/lib/supabase/client'
+import { User } from '@/lib/supabase/types'
 
 interface AuthContextType {
   user: User | null
@@ -27,45 +27,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  
+  // Create client once and memoize it to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), [])
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
-      // console.log('🔄 AuthProvider: Refreshing user...')
-      const currentUser = await getCurrentUser()
-      // console.log('🔄 AuthProvider: User refreshed:', currentUser?.id)
-      setUser(currentUser)
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      
+      if (!authUser) {
+        setUser(null)
+        return
+      }
+
+      // Fetch user profile from database
+      const { data: profile, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authUser.id)
+        .single()
+
+      if (error) {
+        console.error('Error fetching user profile:', error)
+        setUser(null)
+        return
+      }
+
+      setUser(profile)
     } catch (error) {
-      console.error('❌ AuthProvider: Error refreshing user:', error)
+      console.error('Error refreshing user:', error)
       setUser(null)
     }
-  }
+  }, [supabase])
 
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
+    // Get initial session - now instant because it reads from cookies
+    const initializeAuth = async () => {
       try {
-        // console.log('🔄 AuthProvider: Getting initial session...')
         const { data: { session: initialSession } } = await supabase.auth.getSession()
-        // console.log('🔄 AuthProvider: Initial session:', !!initialSession)
         setSession(initialSession)
         
         if (initialSession?.user) {
           await refreshUser()
+        } else {
+          setUser(null)
         }
       } catch (error) {
-        console.error('❌ AuthProvider: Error getting initial session:', error)
+        console.error('Error initializing auth:', error)
+        setUser(null)
       } finally {
-        // console.log('🔄 AuthProvider: Initial loading complete')
         setLoading(false)
       }
     }
 
-    getInitialSession()
+    initializeAuth()
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // console.log('🔄 AuthProvider: Auth state changed:', event, session?.user?.email)
+        console.log('Auth state changed:', event)
         setSession(session)
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
@@ -81,11 +101,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, []) // Empty deps - supabase and refreshUser are stable, effect should run once
 
   const signOut = async () => {
     try {
-      await authSignOut()
+      await supabase.auth.signOut()
       setUser(null)
       setSession(null)
     } catch (error) {
