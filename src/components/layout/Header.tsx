@@ -10,9 +10,16 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Button from '@/components/ui/Button'
 
 export default function Header() {
-  const { user, signOut } = useAuth()
+  const { user, loading, signOut } = useAuth()
   const pathname = usePathname()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+
+  // Close menu when user logs out
+  useEffect(() => {
+    if (!user) {
+      setIsMenuOpen(false)
+    }
+  }, [user])
 
   // Prevent body scroll when menu is open
   useEffect(() => {

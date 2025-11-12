@@ -59,12 +59,14 @@ export default function DocumentsPage() {
 
   // Simplified auth guards - middleware already checked auth
   useEffect(() => {
-    // Only redirect if we're sure there's no user (not during initial load)
-    if (!loading && !user) {
-      console.log('Documents: No user, redirecting to signin')
-      router.replace('/auth/signin')
+    // Only redirect if we're sure there's no session (not just no user)
+    // Session is set immediately from cookies, user requires DB fetch
+    if (!loading && !session && !user) {
+      console.log('Documents: No session detected, redirecting to signin...')
+      // Use window.location for immediate redirect (bypasses React Router)
+      window.location.href = '/auth/signin'
     }
-  }, [user, loading, router])
+  }, [user, session, loading])
 
   useEffect(() => {
     // Fetch data when we have user and session

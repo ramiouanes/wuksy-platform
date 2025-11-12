@@ -60,12 +60,14 @@ export default function DashboardPage() {
 
   // Simplified auth guards - middleware already checked auth
   useEffect(() => {
-    // Only redirect if we're sure there's no user (not during initial load)
-    if (!loading && !user) {
-      console.log('Dashboard: No user, redirecting to signin')
-      router.replace('/auth/signin')
+    // Only redirect if we're sure there's no session (not just no user)
+    // Session is set immediately from cookies, user requires DB fetch
+    if (!loading && !session && !user) {
+      console.log('Dashboard: No session detected, redirecting to signin...')
+      // Use window.location for immediate redirect (bypasses React Router)
+      window.location.href = '/auth/signin'
     }
-  }, [user, loading, router])
+  }, [user, session, loading])
 
   useEffect(() => {
     // Fetch data when we have user and session

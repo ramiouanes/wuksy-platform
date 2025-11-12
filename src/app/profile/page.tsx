@@ -84,8 +84,12 @@ export default function ProfilePage() {
   useEffect(() => {
     if (loading) return
 
-    if (!user) {
-      router.replace('/auth/signin')
+    // Only redirect if we're sure there's no session (not just no user)
+    // Session is set immediately from cookies, user requires DB fetch
+    if (!session && !user) {
+      console.log('Profile: No session detected, redirecting to signin...')
+      // Use window.location for immediate redirect (bypasses React Router)
+      window.location.href = '/auth/signin'
       return
     }
     
@@ -113,7 +117,8 @@ export default function ProfilePage() {
         
         if (response.status === 401) {
           // Unauthorized, redirect to signin
-          router.replace('/auth/signin')
+          console.log('Profile: Unauthorized, redirecting to signin...')
+          window.location.href = '/auth/signin'
           return
         }
 
@@ -181,7 +186,8 @@ export default function ProfilePage() {
 
       if (response.status === 401) {
         // Unauthorized, redirect to signin
-        router.replace('/auth/signin')
+        console.log('Profile: Unauthorized during save, redirecting to signin...')
+        window.location.href = '/auth/signin'
         return
       }
 

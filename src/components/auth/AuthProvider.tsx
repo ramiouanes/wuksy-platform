@@ -64,7 +64,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Get initial session - now instant because it reads from cookies
     const initializeAuth = async () => {
       try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession()
+        console.log('🔄 Initializing auth...')
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          console.error('❌ Error getting session:', error)
+          setSession(null)
+          setUser(null)
+          setLoading(false)
+          return
+        }
+        
+        console.log('📍 Session status:', initialSession ? 'Found' : 'None', initialSession?.user?.email)
         setSession(initialSession)
         
         if (initialSession?.user) {
@@ -73,7 +84,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null)
         }
       } catch (error) {
-        console.error('Error initializing auth:', error)
+        console.error('❌ Error initializing auth:', error)
+        setSession(null)
         setUser(null)
       } finally {
         setLoading(false)
@@ -85,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event)
+        console.log('🔔 Auth state changed:', event, session?.user?.email || 'no user')
         setSession(session)
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
@@ -94,6 +106,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         } else if (event === 'SIGNED_OUT') {
           setUser(null)
+          setSession(null)
+        } else if (event === 'USER_UPDATED') {
+          if (session?.user) {
+            await refreshUser()
+          }
         }
         
         setLoading(false)
