@@ -34,6 +34,7 @@ import {
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 import { ExpandableText } from '@/components/ui/ExpandableText'
+import CartButton from '@/components/cart/CartButton'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { HealthAnalysis } from '@/lib/supabase'
@@ -1507,13 +1508,19 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                             })()}
                                           </h4>
                                         </div>
-                                        <div className="flex-shrink-0 ml-3 text-right">
+                                        <div className="flex-shrink-0 ml-3 flex items-center gap-2">
                                           {duration && (
                                             <span 
                                               className={`px-2 py-1 text-xs font-medium rounded-full ${config.badgeColor} whitespace-nowrap`}
                                             >
                                               {duration}
                                             </span>
+                                          )}
+                                          {supplement.id && (
+                                            <CartButton
+                                              recommendationId={supplement.id}
+                                              supplementName={supplementName}
+                                            />
                                           )}
                                         </div>
                                       </div>

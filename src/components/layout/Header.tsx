@@ -5,14 +5,18 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { useAuth } from '@/components/auth/AuthProvider'
-import { Menu, X, LogOut, Sparkles, FlaskConical } from 'lucide-react'
+import { useCart } from '@/contexts/CartContext'
+import { Menu, X, LogOut, Sparkles, FlaskConical, ShoppingCart, Package } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Button from '@/components/ui/Button'
+import CartDrawer from '@/components/cart/CartDrawer'
 
 export default function Header() {
   const { user, loading, signOut } = useAuth()
+  const { cartItemCount } = useCart()
   const pathname = usePathname()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isCartOpen, setIsCartOpen] = useState(false)
 
   // Close menu when user logs out
   useEffect(() => {
@@ -92,6 +96,13 @@ export default function Header() {
                   >
                     Documents
                   </Link>
+                  <Link 
+                    href="/orders" 
+                    className="text-neutral-600 hover:text-primary-600 transition-colors text-sm"
+                    aria-current={pathname === '/orders' ? 'page' : undefined}
+                  >
+                    My Orders
+                  </Link>
                 </>
               )}
             </nav>
@@ -100,6 +111,24 @@ export default function Header() {
             <div className="hidden md:flex items-center space-x-3 md:ml-6">
               {user ? (
                 <div className="flex items-center space-x-3">
+                  {/* Cart Icon */}
+                  <button
+                    onClick={() => setIsCartOpen(true)}
+                    className="relative p-2 rounded-lg hover:bg-primary-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-300"
+                    aria-label="View cart"
+                  >
+                    <ShoppingCart className="h-5 w-5 text-primary-600" />
+                    {cartItemCount > 0 && (
+                      <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"
+                      >
+                        {cartItemCount > 9 ? '9+' : cartItemCount}
+                      </motion.span>
+                    )}
+                  </button>
+                  
                   <Link href="/profile">
                     <Button variant="ghost" size="sm">
                       Profile
@@ -217,6 +246,16 @@ export default function Header() {
                         <FlaskConical className="h-5 w-5 text-neutral-400 group-hover:text-primary-600 transition-colors" />
                         <span className="font-medium">Supplements</span>
                       </Link>
+                      
+                      <Link
+                        href="/orders"
+                        className="flex items-center space-x-3 px-4 py-3 rounded-lg text-neutral-700 hover:bg-primary-50 hover:text-primary-700 transition-colors group"
+                        onClick={() => setIsMenuOpen(false)}
+                        aria-current={pathname === '/orders' ? 'page' : undefined}
+                      >
+                        <Package className="h-5 w-5 text-neutral-400 group-hover:text-primary-600 transition-colors" />
+                        <span className="font-medium">My Orders</span>
+                      </Link>
                     </div>
 
                     {/* Sign Out at bottom for logged in */}
@@ -292,6 +331,9 @@ export default function Header() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Cart Drawer */}
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </>
   )
 }
