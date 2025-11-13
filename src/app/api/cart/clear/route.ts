@@ -4,38 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-// Helper function to get authenticated user with properly configured Supabase client
-async function getAuthenticatedUser(request: NextRequest) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader) {
-    return null;
-  }
-
-  const token = authHeader.replace('Bearer ', '');
-  
-  // Create Supabase client WITH the user's auth token (for RLS)
-  const supabase = createClient(supabaseUrl, supabaseKey, {
-    global: {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    },
-  });
-  
-  const { data: { user }, error } = await supabase.auth.getUser(token);
-  
-  if (error || !user) {
-    console.error('Error getting user:', error);
-    return null;
-  }
-  
-  return { user, supabase };
-}
+import { getAuthenticatedUser, isAuthError, unauthorizedResponse } from '@/lib/auth/api-auth';
 
 /**
  * DELETE /api/cart/clear
@@ -43,22 +12,19 @@ async function getAuthenticatedUser(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const auth = await getAuthenticatedUser(request);
-    if (!auth) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const authResult = await getAuthenticatedUser(request);
+    if (isAuthError(authResult)) {
+      return unauthorizedResponse(authResult.error);
     }
 
-    const { user, supabase } = auth;
+    const { user, supabase } = authResult;
 
     // Get user's cart
     const { data: cart, error: cartError } = await supabase
       .from('shopping_carts')
       .select('id')
       .eq('user_id', user.id)
-      .single();
+      .single() as { data: { id: string } | null; error: any };
 
     // If no cart exists, nothing to clear
     if (cartError || !cart) {
@@ -95,4 +61,3 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
-

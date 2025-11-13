@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { signIn, signInWithProvider } from '@/lib/auth'
+import { authService } from '@/lib/auth/auth-service'
+import { useAuth } from '@/components/auth/AuthProvider'
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
@@ -16,6 +17,7 @@ function SignInForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const prefersReducedMotion = useReducedMotion()
+  const { session, loading } = useAuth()
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -25,6 +27,13 @@ function SignInForm() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
+  // Redirect if already signed in
+  useEffect(() => {
+    if (!loading && session) {
+      router.replace('/dashboard')
+    }
+  }, [session, loading, router])
+
   useEffect(() => {
     // Check for message in URL params
     const urlMessage = searchParams.get('message')
@@ -33,13 +42,27 @@ function SignInForm() {
     }
   }, [searchParams])
 
+  // Show loading state while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50 flex items-center justify-center">
+        <div className="animate-pulse text-primary-600">Loading...</div>
+      </div>
+    )
+  }
+
+  // If already signed in, don't render (redirect will happen)
+  if (session) {
+    return null
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError('')
 
     try {
-      await signIn(formData.email, formData.password)
+      await authService.signIn(formData.email, formData.password)
       
       // No delay needed - session is now in cookies
       // Middleware handles refresh, AuthProvider syncs immediately
@@ -57,7 +80,7 @@ function SignInForm() {
     setError('')
 
     try {
-      await signInWithProvider(provider)
+      await authService.signInWithProvider(provider)
       // Redirect will be handled by the OAuth provider
     } catch (err: any) {
       setError(err.message || `An error occurred during ${provider} sign in`)

@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { getAuthenticatedUser } from '@/lib/auth-server'
+import { getAuthenticatedUser, isAuthError, unauthorizedResponse } from '@/lib/auth/api-auth'
 
 export async function POST(request: NextRequest) {
   try {
-    // Get the authenticated user using server-side auth
-    const { user, error: authError } = await getAuthenticatedUser(request)
+    // Get the authenticated user using unified auth helper
+    const authResult = await getAuthenticatedUser(request)
     
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    if (isAuthError(authResult)) {
+      return unauthorizedResponse(authResult.error)
     }
+    
+    const { user, supabase } = authResult
 
     const formData = await request.formData()
     const file = formData.get('file') as File
@@ -54,29 +52,8 @@ export async function POST(request: NextRequest) {
     const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
     const fileName = `${user.id}/${timestamp}_${cleanFileName}`
 
-    // Create a Supabase client with the user's token for storage upload
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    const authorization = request.headers.get('authorization')
-    const token = authorization?.replace('Bearer ', '')
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Missing authorization token' },
-        { status: 401 }
-      )
-    }
-
-    const userSupabase = createClient(supabaseUrl!, supabaseKey!, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    })
-
-    // Upload file to Supabase Storage using user's authenticated client
-    const { data: uploadData, error: uploadError } = await userSupabase.storage
+    // Upload file to Supabase Storage using authenticated client
+    const { data: uploadData, error: uploadError } = await supabase.storage
       .from('documents')
       .upload(fileName, file, {
         cacheControl: '3600',
@@ -91,8 +68,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Save document metadata to database using user's authenticated client
-    const { data: documentData, error: dbError } = await userSupabase
+    // Save document metadata to database using authenticated client
+    const { data: documentData, error: dbError } = await supabase
       .from('documents')
       .insert({
         user_id: user.id,
@@ -103,12 +80,12 @@ export async function POST(request: NextRequest) {
         status: 'uploading'
       })
       .select()
-      .single()
+      .single() as { data: any | null; error: any }
 
     if (dbError) {
       console.error('Database error:', dbError)
       // Try to clean up uploaded file
-      await userSupabase.storage
+      await supabase.storage
         .from('documents')
         .remove([fileName])
       
@@ -131,4 +108,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-} 
+}

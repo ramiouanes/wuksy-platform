@@ -1,52 +1,29 @@
+/**
+ * DEPRECATED: This file is kept for backward compatibility
+ * All server-side auth now uses the unified API auth helper
+ * @see @/lib/auth/api-auth.ts
+ */
+
+import { getAuthenticatedUser as unifiedGetAuthenticatedUser } from '@/lib/auth/api-auth'
 import { NextRequest } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 
+/**
+ * @deprecated Use getAuthenticatedUser from '@/lib/auth/api-auth' instead
+ */
 export async function getAuthenticatedUser(request: NextRequest) {
-  try {
-    // Get the authorization header
-    const authorization = request.headers.get('authorization')
-    
-    if (!authorization) {
-      return { user: null, error: 'No authorization header' }
-    }
-
-    // Extract the access token from Bearer token
-    const token = authorization.replace('Bearer ', '')
-    
-    if (!token) {
-      return { user: null, error: 'No token found' }
-    }
-
-    // Create a Supabase client with the user's token
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    
-    if (!supabaseUrl || !supabaseKey) {
-      return { user: null, error: 'Missing Supabase configuration' }
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    })
-
-    // Get the user from the token
-    const { data: { user }, error } = await supabase.auth.getUser(token)
-    
-    if (error || !user) {
-      return { user: null, error: error?.message || 'Invalid token' }
-    }
-
-    return { user, error: null }
-  } catch (error) {
-    return { user: null, error }
+  const result = await unifiedGetAuthenticatedUser(request)
+  
+  // Convert to old format for backward compatibility
+  if ('error' in result) {
+    return { user: null, error: result.error }
   }
-}
+  
+  return { user: result.user, error: null }
+    }
 
-// Alternative approach using a test user ID
+/**
+ * @deprecated No longer needed - for testing only
+ */
 export async function getTestUser() {
   return {
     id: 'test-user-123',

@@ -6,8 +6,39 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import type { Cart, CartItemWithDetails, AddToCartRequest } from '@/lib/types/cart';
-import { getAuthenticatedUser, isAuthError, unauthorizedResponse } from '@/lib/auth/api-auth';
+
+// Helper function to get authenticated user with properly configured Supabase client
+async function getAuthenticatedUser(request: NextRequest) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader) {
+    return null;
+  }
+
+  const token = authHeader.replace('Bearer ', '');
+  
+  // Create Supabase client WITH the user's auth token (for RLS)
+  const supabase = createClient(supabaseUrl, supabaseKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  });
+  
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  
+  if (error || !user) {
+    console.error('Error getting user:', error);
+    return null;
+  }
+  
+  return { user, supabase };
+}
 
 /**
  * GET /api/cart
@@ -15,12 +46,15 @@ import { getAuthenticatedUser, isAuthError, unauthorizedResponse } from '@/lib/a
  */
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await getAuthenticatedUser(request);
-    if (isAuthError(authResult)) {
-      return unauthorizedResponse(authResult.error);
+    const auth = await getAuthenticatedUser(request);
+    if (!auth) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
-    const { user, supabase } = authResult;
+    const { user, supabase } = auth;
 
     console.log('Fetching cart for user:', user.id);
 
@@ -30,7 +64,7 @@ export async function GET(request: NextRequest) {
       .select('id, user_id, created_at, updated_at, expires_at')
       .eq('user_id', user.id)
       .gte('expires_at', new Date().toISOString())
-      .single() as { data: { id: string; user_id: string; created_at: string; updated_at: string; expires_at: string } | null; error: any };
+      .single();
 
     // If no cart exists, return empty cart
     if (cartError || !cart) {
@@ -200,12 +234,15 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await getAuthenticatedUser(request);
-    if (isAuthError(authResult)) {
-      return unauthorizedResponse(authResult.error);
+    const auth = await getAuthenticatedUser(request);
+    if (!auth) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
-    const { user, supabase } = authResult;
+    const { user, supabase } = auth;
 
     // Parse request body
     const body: AddToCartRequest = await request.json();
@@ -224,7 +261,7 @@ export async function POST(request: NextRequest) {
       .from('partner_products')
       .select('id, unit_price, in_stock')
       .eq('id', partner_product_id)
-      .single() as { data: { id: string; unit_price: number; in_stock: boolean } | null; error: any };
+      .single();
 
     if (productError || !product) {
       return NextResponse.json(
@@ -260,7 +297,7 @@ export async function POST(request: NextRequest) {
       .select('id, quantity')
       .eq('cart_id', cartId)
       .eq('partner_product_id', partner_product_id)
-      .maybeSingle() as { data: { id: string; quantity: number } | null; error: any };
+      .maybeSingle();
 
     if (existingError) {
       console.error('Error checking existing item:', existingError);

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useAuth } from '@/components/auth/AuthProvider'
 import { useCart } from '@/contexts/CartContext'
@@ -12,18 +12,33 @@ import Button from '@/components/ui/Button'
 import CartDrawer from '@/components/cart/CartDrawer'
 
 export default function Header() {
-  const { user, loading, signOut } = useAuth()
+  const { user, loading, signOut, session } = useAuth()
   const { cartItemCount } = useCart()
   const pathname = usePathname()
+  const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isCartOpen, setIsCartOpen] = useState(false)
+  const [isSigningOut, setIsSigningOut] = useState(false)
+  
+  // For display: use session to determine if logged in (instant), user for details (delayed)
+  // This prevents flash of logged-out state on reload
+  // Show logged-in UI if: has session OR (loading and no explicit sign-out)
+  const isAuthenticated = !!session || (loading && !isSigningOut)
+  const displayUser = user // Use actual user, but isAuthenticated determines UI
 
   // Close menu when user logs out
   useEffect(() => {
-    if (!user) {
+    if (!isAuthenticated) {
       setIsMenuOpen(false)
     }
-  }, [user])
+  }, [isAuthenticated])
+
+  // Reset signing out state when user changes (e.g., signs back in)
+  useEffect(() => {
+    if (user && isSigningOut) {
+      setIsSigningOut(false)
+    }
+  }, [user, isSigningOut])
 
   // Prevent body scroll when menu is open
   useEffect(() => {
@@ -44,7 +59,7 @@ export default function Header() {
           <div className="flex justify-between items-center h-16 md:justify-start">
           {/* Logo - Centered on mobile */}
           <Link 
-            href={user ? "/dashboard" : "/"} 
+            href={isAuthenticated ? "/dashboard" : "/"} 
             className="flex items-center space-x-3 md:flex-none absolute left-1/2 -translate-x-1/2 md:relative md:left-auto md:translate-x-0"
           >
             <Image
@@ -80,7 +95,7 @@ export default function Header() {
               >
                 Supplements
               </Link>
-              {user && (
+              {isAuthenticated && (
                 <>
                   <Link 
                     href="/dashboard" 
@@ -109,7 +124,7 @@ export default function Header() {
 
             {/* User Actions - Desktop */}
             <div className="hidden md:flex items-center space-x-3 md:ml-6">
-              {user ? (
+              {isAuthenticated ? (
                 <div className="flex items-center space-x-3">
                   {/* Cart Icon */}
                   <button
@@ -134,7 +149,19 @@ export default function Header() {
                       Profile
                     </Button>
                   </Link>
-                  <Button variant="outline" size="sm" onClick={signOut}>
+                  <Button variant="outline" size="sm" onClick={async () => {
+                    try {
+                      setIsSigningOut(true)
+                      await signOut()
+                      setTimeout(() => {
+                        router.push('/')
+                        setIsSigningOut(false)
+                      }, 100)
+                    } catch (error) {
+                      console.error('Error signing out:', error)
+                      setIsSigningOut(false)
+                    }
+                  }}>
                     Sign Out
                   </Button>
                 </div>
@@ -208,9 +235,9 @@ export default function Header() {
                     <X className="h-5 w-5 text-neutral-600" />
                   </button>
                 </div>
-                {user ? (
+                {isAuthenticated ? (
                   <div className="space-y-1">
-                    <p className="text-sm font-medium text-neutral-800">{user.email}</p>
+                    <p className="text-sm font-medium text-neutral-800">{displayUser?.email || 'User'}</p>
                     <p className="text-xs text-neutral-500">Wellness Journey</p>
                   </div>
                 ) : (
@@ -223,7 +250,7 @@ export default function Header() {
 
               {/* Drawer Content */}
               <div className="flex flex-col h-[calc(100%-180px)]">
-                {user ? (
+                {isAuthenticated ? (
                   <>
                     {/* Menu Items for logged in users */}
                     <div className="p-6 space-y-1">
@@ -262,9 +289,19 @@ export default function Header() {
                     <div className="mt-auto p-6 border-t border-neutral-100 bg-neutral-50">
                       <Button 
                         variant="outline" 
-                        onClick={() => {
-                          signOut()
-                          setIsMenuOpen(false)
+                        onClick={async () => {
+                          try {
+                            setIsSigningOut(true)
+                            await signOut()
+                            setIsMenuOpen(false)
+                            setTimeout(() => {
+                              router.push('/')
+                              setIsSigningOut(false)
+                            }, 100)
+                          } catch (error) {
+                            console.error('Error signing out:', error)
+                            setIsSigningOut(false)
+                          }
                         }} 
                         className="w-full justify-center"
                       >

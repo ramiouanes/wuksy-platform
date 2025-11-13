@@ -1,46 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { getAuthenticatedUser } from '@/lib/auth-server'
+import { getAuthenticatedUser, isAuthError, unauthorizedResponse } from '@/lib/auth/api-auth'
 
 export async function GET(request: NextRequest) {
   try {
-    // Get the authenticated user using server-side auth
-    const { user, error: authError } = await getAuthenticatedUser(request)
+    // Get the authenticated user using unified auth helper
+    const authResult = await getAuthenticatedUser(request)
     
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    if (isAuthError(authResult)) {
+      return unauthorizedResponse(authResult.error)
     }
 
-    // Create a Supabase client with the user's token
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    const authorization = request.headers.get('authorization')
-    const token = authorization?.replace('Bearer ', '')
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Missing authorization token' },
-        { status: 401 }
-      )
-    }
-
-    const userSupabase = createClient(supabaseUrl!, supabaseKey!, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    })
+    const { user, supabase } = authResult
 
     // Get user demographic profile
-    const { data: profile, error: profileError } = await userSupabase
+    const { data: profile, error: profileError } = await supabase
       .from('user_demographic_profiles')
       .select('*')
       .eq('user_id', user.id)
-      .single()
+      .single() as { data: any | null; error: any }
 
     if (profileError && profileError.code !== 'PGRST116') {
       console.error('Error fetching profile:', profileError)
@@ -66,50 +43,28 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Get the authenticated user using server-side auth
-    const { user, error: authError } = await getAuthenticatedUser(request)
+    // Get the authenticated user using unified auth helper
+    const authResult = await getAuthenticatedUser(request)
     
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    if (isAuthError(authResult)) {
+      return unauthorizedResponse(authResult.error)
     }
 
-    // Create a Supabase client with the user's token
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    const authorization = request.headers.get('authorization')
-    const token = authorization?.replace('Bearer ', '')
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Missing authorization token' },
-        { status: 401 }
-      )
-    }
-
-    const userSupabase = createClient(supabaseUrl!, supabaseKey!, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    })
+    const { user, supabase } = authResult
 
     const profileData = await request.json()
 
     // Check if profile already exists
-    const { data: existingProfile } = await userSupabase
+    const { data: existingProfile } = await supabase
       .from('user_demographic_profiles')
       .select('id')
       .eq('user_id', user.id)
-      .single()
+      .single() as { data: { id: string } | null; error: any }
 
     let result
     if (existingProfile) {
       // Update existing profile
-      result = await userSupabase
+      result = await supabase
         .from('user_demographic_profiles')
         .update({
           gender: profileData.gender || null,
@@ -124,10 +79,10 @@ export async function POST(request: NextRequest) {
         })
         .eq('user_id', user.id)
         .select()
-        .single()
+        .single() as { data: any | null; error: any }
     } else {
       // Create new profile
-      result = await userSupabase
+      result = await supabase
         .from('user_demographic_profiles')
         .insert({
           user_id: user.id,
@@ -141,7 +96,7 @@ export async function POST(request: NextRequest) {
           supplement_preferences: profileData.supplement_preferences || {}
         })
         .select()
-        .single()
+        .single() as { data: any | null; error: any }
     }
 
     if (result.error) {
@@ -165,4 +120,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-} 
+}

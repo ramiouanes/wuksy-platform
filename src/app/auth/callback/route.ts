@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     try {
+      const supabase = await createClient()
       const { data, error } = await supabase.auth.exchangeCodeForSession(code)
       
       if (!error && data.user) {
@@ -22,4 +23,4 @@ export async function GET(request: NextRequest) {
 
   // Redirect to sign in page if there's an error
   return NextResponse.redirect(new URL('/auth/signin', request.url))
-} 
+}
