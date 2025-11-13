@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/components/auth/AuthProvider'
@@ -87,6 +87,9 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
   const [workout, setWorkout] = useState<any[]>([])
   const [loadingRecommendations, setLoadingRecommendations] = useState(false)
 
+  // Track if analysis has been loaded for this analysisId to prevent unnecessary re-fetches
+  const loadedAnalysisIdRef = useRef<string | null>(null)
+
   useEffect(() => {
     // Resolve the params promise
     const resolveParams = async () => {
@@ -99,6 +102,13 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
   useEffect(() => {
     const fetchAnalysis = async () => {
       if (!analysisId || !session?.access_token) return
+      
+      // Only fetch if we haven't loaded this specific analysis yet
+      if (loadedAnalysisIdRef.current === analysisId) {
+        return
+      }
+      
+      loadedAnalysisIdRef.current = analysisId
       
       try {
         const response = await fetch(`/api/analysis/${analysisId}`, {
@@ -113,6 +123,8 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
         setAnalysis(data.analysis)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
+        // Reset on error to allow retry
+        loadedAnalysisIdRef.current = null
       } finally {
         setLoading(false)
       }
@@ -123,10 +135,20 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
     }
   }, [analysisId, user, session])
 
+  // Track if recommendations have been loaded for this analysisId
+  const loadedRecommendationsIdRef = useRef<string | null>(null)
+
   // Fetch recommendations from API routes
   useEffect(() => {
     const fetchRecommendations = async () => {
       if (!analysisId || !session?.access_token || !analysis || analysis.status !== 'completed') return
+      
+      // Only fetch if we haven't loaded recommendations for this analysis yet
+      if (loadedRecommendationsIdRef.current === analysisId) {
+        return
+      }
+      
+      loadedRecommendationsIdRef.current = analysisId
       
       setLoadingRecommendations(true)
       try {
@@ -166,7 +188,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
           setWorkout(workoutData.workout || [])
         }
       } catch (err) {
-        console.error('Error fetching recommendations:', err)
+        // Error fetching recommendations
       } finally {
         setLoadingRecommendations(false)
       }
@@ -783,16 +805,6 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                                             reading.name ||
                                             `Biomarker ${index + 1}` // Fallback for unnamed biomarkers
                         
-                        console.log('Processing reading:', {
-                          index,
-                          biomarkerName,
-                          hasBiomarkerLink: !!reading.biomarkers,
-                          readingKeys: Object.keys(reading),
-                          value: reading.value,
-                          unit: reading.unit,
-                          status: reading.status
-                        })
-                        
                         // Find matching insight to enrich the data (only if we have a proper name)
                         const insight = biomarkerName !== `Biomarker ${index + 1}` ? findInsight(biomarkerName) : null
                         
@@ -837,7 +849,6 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                       })
                     } else {
                       // Fallback: if no biomarker_readings, use insights only
-                      console.warn('No biomarker_readings found, falling back to insights only')
                       analysis.biomarker_insights?.forEach((insight: any) => {
                         allBiomarkers.push({ 
                           ...insight, 
@@ -846,15 +857,6 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                         })
                       })
                     }
-                    
-                    console.log('Debug: Total biomarkers collected:', allBiomarkers.length)
-                    console.log('Debug: Biomarkers from readings:', allBiomarkers.map(b => ({
-                      name: b.biomarker_name || b.biomarker,
-                      status: b.status,
-                      hasInsight: b.hasInsight,
-                      value: b.current_value || b.value,
-                      unit: b.unit
-                    })))
 
                     // Group by status
                     const biomarkersByStatus = groupBiomarkersByStatus(allBiomarkers)
@@ -2611,7 +2613,6 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                   <button
                     onClick={() => {
                       // Future: Implement reminder functionality
-                      console.log('Create reminder clicked')
                     }}
                     className="flex items-center space-x-3 p-3 bg-neutral-50 rounded-lg border border-primary-200 hover:bg-primary-50 hover:border-primary-300 transition-colors text-left w-full"
                   >

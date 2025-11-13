@@ -132,7 +132,7 @@ export default function AdminDashboardPage() {
         setStats(data.stats)
       }
     } catch (error) {
-      console.error('Error fetching stats:', error)
+      // Error fetching stats
     } finally {
       setLoading(false)
     }
@@ -190,7 +190,7 @@ export default function AdminDashboardPage() {
         }
       }
     } catch (error) {
-      console.error('Error fetching tab data:', error)
+      // Error fetching tab data
     } finally {
       setRefreshing(false)
     }
@@ -201,7 +201,7 @@ export default function AdminDashboardPage() {
       await fetch('/api/admin/logout', { method: 'POST' })
       router.push('/coming-soon')
     } catch (error) {
-      console.error('Logout error:', error)
+      // Logout error
     }
   }
 
@@ -220,7 +220,7 @@ export default function AdminDashboardPage() {
         document.body.removeChild(a)
       }
     } catch (error) {
-      console.error('Export error:', error)
+      // Export error
     }
   }
 
@@ -244,7 +244,7 @@ export default function AdminDashboardPage() {
         fetchStats()
       }
     } catch (error) {
-      console.error('Delete error:', error)
+      // Delete error
     }
   }
 

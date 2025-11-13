@@ -15,17 +15,24 @@ export function createClient() {
         get(name: string) {
           // Read cookie from browser
           if (typeof document === 'undefined') return undefined
-          const value = document.cookie
-            .split('; ')
-            .find(row => row.startsWith(`${name}=`))
-            ?.split('=')[1]
-          return value
+          
+          const cookies = document.cookie.split('; ')
+          const cookie = cookies.find(row => row.startsWith(`${name}=`))
+          
+          if (!cookie) {
+            return undefined
+          }
+          
+          // Get everything after the first '=' (don't split by '=' as JWT values can contain '=')
+          const value = cookie.substring(name.length + 1)
+          const decoded = value ? decodeURIComponent(value) : undefined
+          return decoded
         },
         set(name: string, value: string, options: any) {
           // Write cookie to browser with proper options
           if (typeof document === 'undefined') return
           
-          let cookie = `${name}=${value}`
+          let cookie = `${name}=${encodeURIComponent(value)}`
           
           // Add expiration
           if (options.maxAge) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
@@ -57,26 +57,38 @@ export default function DocumentsPage() {
 
   const [analysisAbortControllers, setAnalysisAbortControllers] = useState<{[key: string]: AbortController}>({})
 
+  // Track if data has been loaded and current user ID to prevent unnecessary re-fetches
+  const dataLoadedRef = useRef(false)
+  const currentUserIdRef = useRef<string | null>(null)
+
   // Simplified auth guards - middleware already checked auth
   useEffect(() => {
     // Only redirect if we're sure there's no session (not just no user)
     // Session is set immediately from cookies, user requires DB fetch
     if (!loading && !session && !user) {
-      console.log('Documents: No session detected, redirecting to signin...')
       // Use window.location for immediate redirect (bypasses React Router)
       window.location.href = '/auth/signin'
     }
   }, [user, session, loading])
 
   useEffect(() => {
-    // Fetch data when we have user and session
-    if (user && session) {
+    // Only fetch if:
+    // 1. We have user and session
+    // 2. Data hasn't been loaded yet OR user changed (different user ID)
+    const userIdChanged = user?.id && user.id !== currentUserIdRef.current
+    const shouldFetch = user && session && (!dataLoadedRef.current || userIdChanged)
+    
+    if (shouldFetch) {
+      currentUserIdRef.current = user.id
+      dataLoadedRef.current = true
       fetchDocuments()
     }
   }, [user, session])
 
   const fetchDocuments = async () => {
-    if (!session?.access_token) return
+    if (!session?.access_token) {
+      return
+    }
 
     try {
       // Use the new client - it automatically handles sessions from cookies
@@ -104,20 +116,15 @@ export default function DocumentsPage() {
         .order('uploaded_at', { ascending: false })
 
       if (documentsError) {
-        console.error('Error fetching documents:', documentsError)
         return
       }
 
       // Fetch analyses for each document
       const documentIds = documentsData?.map(d => d.id) || []
-      const { data: analysesData, error: analysesError } = await supabase
+      const { data: analysesData } = await supabase
         .from('health_analyses')
         .select('*')
         .in('document_id', documentIds)
-
-      if (analysesError) {
-        console.error('Error fetching analyses:', analysesError)
-      }
 
       // Combine documents with their analyses
       const documentsWithAnalyses = documentsData?.map(doc => ({
@@ -128,7 +135,7 @@ export default function DocumentsPage() {
 
       setDocuments(documentsWithAnalyses)
     } catch (error) {
-      console.error('Error fetching documents:', error)
+      // Error fetching documents
     } finally {
       setIsLoading(false)
     }
@@ -151,7 +158,6 @@ export default function DocumentsPage() {
     
     try {
       // Step 1: Trigger analysis via edge function (now proxied)
-      console.log('🚀 [Web] Starting analysis for document:', documentId)
       const response = await fetch('/api/analysis/generate-streaming', {
         method: 'POST',
         headers: {
@@ -174,8 +180,6 @@ export default function DocumentsPage() {
         throw new Error('No analysisId received from server')
       }
       
-      console.log('✅ [Web] Analysis triggered:', analysisId)
-      
       // Step 2: Poll for status updates
       let pollCount = 0
       const maxPolls = 150 // 150 polls * 2 seconds = 5 minutes max
@@ -184,7 +188,6 @@ export default function DocumentsPage() {
       const poll = async () => {
         try {
           if (abortController.signal.aborted) {
-            console.log('⏹️ [Web] Analysis polling cancelled')
             return
           }
           
@@ -206,57 +209,16 @@ export default function DocumentsPage() {
           )
           
           if (!statusResponse.ok) {
-            console.error('❌ [Web] Status poll failed:', statusResponse.status)
             setTimeout(poll, pollInterval)
             return
           }
           
           const status = await statusResponse.json()
-          console.log(`📊 [Web] Poll #${pollCount}:`, status.currentPhase, status.currentMessage)
           
-          // Calculate progress based on phase
-          let progressPercentage = 0
-          if (status.currentPhase) {
-            switch (status.currentPhase) {
-              case 'queued':
-                progressPercentage = 5
-                break
-              case 'initialization':
-                progressPercentage = 10
-                break
-              case 'data_fetching':
-                progressPercentage = 20
-                break
-              case 'pattern_analysis':
-                progressPercentage = 30
-                break
-              case 'reasoning':
-                progressPercentage = 60
-                break
-              case 'generating':
-                progressPercentage = 80
-                break
-              case 'saving_analysis':
-                progressPercentage = 90
-                break
-              case 'saving_supplements':
-                progressPercentage = 93
-                break
-              case 'saving_diet':
-                progressPercentage = 96
-                break
-              case 'saving_lifestyle':
-                progressPercentage = 98
-                break
-              case 'complete':
-                progressPercentage = 100
-                break
-              default:
-                progressPercentage = Math.min(analysisProgress[documentId] || 0 + 2, 95)
-            }
-          }
+          // Use progress from API (calculated based on phase completion)
+          const progressPercentage = status.progress || 0
           
-          // Update UI
+          // Update UI with phase statuses
           setAnalysisProgress(prev => ({ ...prev, [documentId]: progressPercentage }))
           setAnalysisStatus(prev => ({ 
             ...prev, 
@@ -267,15 +229,87 @@ export default function DocumentsPage() {
             [documentId]: { 
               stage: status.currentPhase,
               thoughtProcess: status.thoughtProcess,
+              phaseStatuses: status.phaseStatuses, // Add phase statuses for UI
+              coreComplete: status.coreComplete,
               ...status.details 
             } 
           }))
           
-          // Check if complete
-          if (status.status === 'completed') {
-            console.log('✅ [Web] Analysis complete')
+          // Check phase statuses (like mobile app does)
+          const phaseStatuses = status.phaseStatuses || {}
+          const coreStatus = phaseStatuses.core
+          
+          // Critical failure: Core phase failed
+          if (coreStatus === 'failed') {
+            throw new Error('Core analysis failed')
+          }
+          
+          // Success: Check if all phases are done (not just overall status)
+          const allPhasesDone = phaseStatuses.core && 
+            phaseStatuses.supplements && 
+            phaseStatuses.diet && 
+            phaseStatuses.lifestyle && 
+            phaseStatuses.workout &&
+            phaseStatuses.core !== 'pending' &&
+            phaseStatuses.core !== 'processing' &&
+            phaseStatuses.supplements !== 'pending' &&
+            phaseStatuses.supplements !== 'processing' &&
+            phaseStatuses.diet !== 'pending' &&
+            phaseStatuses.diet !== 'processing' &&
+            phaseStatuses.lifestyle !== 'pending' &&
+            phaseStatuses.lifestyle !== 'processing' &&
+            phaseStatuses.workout !== 'pending' &&
+            phaseStatuses.workout !== 'processing'
+          
+          if (allPhasesDone && coreStatus === 'completed') {
+            const failedPhases = Object.entries(phaseStatuses)
+              .filter(([_, phaseStatus]) => phaseStatus === 'failed')
+              .map(([phase]) => phase)
             
             // Clean up and refresh
+            setTimeout(() => {
+              setAnalysisAbortControllers(prev => {
+                const next = { ...prev }
+                delete next[documentId]
+                return next
+              })
+              
+              setAnalysisProgress(prev => {
+                const next = { ...prev }
+                delete next[documentId]
+                return next
+              })
+              setAnalysisStatus(prev => {
+                const next = { ...prev }
+                delete next[documentId]
+                return next
+              })
+              setAnalysisDetails(prev => {
+                const next = { ...prev }
+                delete next[documentId]
+                return next
+              })
+              setExpandedReasoning(prev => {
+                const next = { ...prev }
+                delete next[documentId]
+                return next
+              })
+              
+              fetchDocuments()
+              
+              setAnalyzingDocuments(prev => {
+                const next = new Set(prev)
+                next.delete(documentId)
+                return next
+              })
+            }, 1000)
+            
+            return
+          }
+          
+          // Legacy check for backward compatibility (if status API returns old format)
+          if (status.status === 'completed') {
+            // Same cleanup as above
             setTimeout(() => {
               setAnalysisAbortControllers(prev => {
                 const next = { ...prev }
@@ -323,10 +357,8 @@ export default function DocumentsPage() {
           
         } catch (error) {
           if (error instanceof Error && error.name === 'AbortError') {
-            console.log('⏹️ [Web] Polling aborted')
             return
           }
-          console.error('❌ [Web] Poll error:', error)
           // Continue polling on error (might be transient)
           setTimeout(poll, pollInterval)
         }
@@ -336,11 +368,8 @@ export default function DocumentsPage() {
       poll()
 
     } catch (error) {
-      console.error('Analysis failed:', error)
-      
       // Check if it was cancelled by user
       if (error instanceof Error && error.name === 'AbortError') {
-        console.log('Analysis was cancelled by user')
         return // Don't show error message for user cancellation
       }
       
@@ -372,40 +401,8 @@ export default function DocumentsPage() {
       })
       
       alert('Analysis failed. Please try again.')
-    } finally {
-      // Clean up abort controller
-      setAnalysisAbortControllers(prev => {
-        const next = { ...prev }
-        delete next[documentId]
-        return next
-      })
-      
-      setAnalyzingDocuments(prev => {
-        const next = new Set(prev)
-        next.delete(documentId)
-        return next
-      })
-      setAnalysisProgress(prev => {
-        const next = { ...prev }
-        delete next[documentId]
-        return next
-      })
-      setAnalysisStatus(prev => {
-        const next = { ...prev }
-        delete next[documentId]
-        return next
-      })
-      setAnalysisDetails(prev => {
-        const next = { ...prev }
-        delete next[documentId]
-        return next
-      })
-      setExpandedReasoning(prev => {
-        const next = { ...prev }
-        delete next[documentId]
-        return next
-      })
     }
+    // Note: No finally block here - cleanup happens in poll() on completion/error
   }
 
   // Helper function to extract title and content from reasoning text
@@ -453,6 +450,59 @@ export default function DocumentsPage() {
         return { icon: CheckCircle, color: 'text-green-600', description: 'Analysis complete!' }
       default:
         return { icon: Clock, color: 'text-blue-500', description: 'Processing...' }
+    }
+  }
+
+  // Get phase status display info
+  const getPhaseStatusInfo = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return { 
+          icon: CheckCircle, 
+          color: 'text-primary-600', 
+          bgColor: 'bg-primary-50',
+          label: 'Complete' 
+        }
+      case 'processing':
+        return { 
+          icon: Clock, 
+          color: 'text-blue-600', 
+          bgColor: 'bg-blue-50',
+          label: 'Processing...' 
+        }
+      case 'failed':
+        return { 
+          icon: AlertCircle, 
+          color: 'text-red-600', 
+          bgColor: 'bg-red-50',
+          label: 'Failed' 
+        }
+      case 'pending':
+      default:
+        return { 
+          icon: Clock, 
+          color: 'text-neutral-400', 
+          bgColor: 'bg-neutral-50',
+          label: 'Pending' 
+        }
+    }
+  }
+
+  // Get phase display name and icon
+  const getPhaseInfo = (phase: string) => {
+    switch (phase) {
+      case 'core':
+        return { name: 'Core Analysis', icon: Brain }
+      case 'supplements':
+        return { name: 'Supplements', icon: Pill }
+      case 'diet':
+        return { name: 'Diet Plan', icon: Apple }
+      case 'lifestyle':
+        return { name: 'Lifestyle', icon: Activity }
+      case 'workout':
+        return { name: 'Workout Plan', icon: Dumbbell }
+      default:
+        return { name: phase, icon: Clock }
     }
   }
 
@@ -800,134 +850,142 @@ export default function DocumentsPage() {
                         </Button>
                       ) : (
                         <div 
-                          className={`space-y-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100 ${
-                            isMobile ? 'min-h-[10rem]' : 'min-h-[12rem]'
-                          } flex flex-col justify-between`}
+                          className="space-y-4 p-4 bg-gradient-to-br from-neutral-50 to-primary-50/30 rounded-lg border border-neutral-200"
                           aria-busy="true"
                           aria-live="polite"
                         >
-                          {/* Main Progress Content */}
-                          <div className="space-y-3 flex-1">
-                            {/* Progress Header */}
+                          {/* Header with Overall Progress */}
+                          <div className="space-y-2">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center space-x-2">
-                                {(() => {
-                                  const stage = analysisDetails[document.id]?.stage || 'initializing'
-                                  const stageInfo = getAnalysisStageIcon(stage)
-                                  const StageIcon = stageInfo.icon
-                                  return (
-                                    <>
-                                      <StageIcon className={`h-4 w-4 ${stageInfo.color} animate-pulse`} />
-                                      <span className="text-sm font-medium text-neutral-700">
-                                        Analysis in Progress
-                                      </span>
-                                    </>
-                                  )
-                                })()}
+                                <Brain className="h-4 w-4 text-primary-600 animate-pulse" />
+                                <span className="text-sm font-medium text-neutral-800">
+                                  AI Analysis in Progress
+                                </span>
                               </div>
-                              <span className="text-xs text-neutral-500">
+                              <span className="text-xs text-neutral-500 font-medium">
                                 {analysisProgress[document.id] || 0}%
                               </span>
                             </div>
 
-                            {/* Progress Bar */}
-                            <div className="w-full bg-neutral-200 rounded-full h-2">
+                            {/* Overall Progress Bar */}
+                            <div className="w-full bg-neutral-200 rounded-full h-1.5">
                               <div
-                                className="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full transition-all duration-500 ease-out"
+                                className="bg-gradient-to-r from-primary-500 to-primary-600 h-1.5 rounded-full transition-all duration-500 ease-out"
                                 style={{ width: `${analysisProgress[document.id] || 0}%` }}
                               />
                             </div>
+                          </div>
 
-                            {/* Current Status */}
-                            <div className="space-y-1 min-h-[2.5rem]">
-                              <div className="text-xs text-neutral-600 font-medium">
+                          {/* Phase Status Grid */}
+                          {analysisDetails[document.id]?.phaseStatuses && (
+                            <div className="grid grid-cols-2 gap-2">
+                              {Object.entries(analysisDetails[document.id].phaseStatuses).map(([phase, status]: [string, any]) => {
+                                const phaseInfo = getPhaseInfo(phase)
+                                const statusInfo = getPhaseStatusInfo(status)
+                                const PhaseIcon = phaseInfo.icon
+                                const StatusIcon = statusInfo.icon
+                                
+                                return (
+                                  <div
+                                    key={phase}
+                                    className={`flex items-center space-x-2 px-2 py-1.5 rounded-md border ${statusInfo.bgColor} ${
+                                      status === 'processing' ? 'border-blue-200' : 'border-transparent'
+                                    }`}
+                                  >
+                                    <div className="flex-shrink-0">
+                                      {status === 'processing' ? (
+                                        <StatusIcon className={`h-3.5 w-3.5 ${statusInfo.color} animate-pulse`} />
+                                      ) : (
+                                        <StatusIcon className={`h-3.5 w-3.5 ${statusInfo.color}`} />
+                                      )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center space-x-1.5">
+                                        <PhaseIcon className="h-3 w-3 text-neutral-600 flex-shrink-0" />
+                                        <span className="text-xs font-medium text-neutral-700 truncate">
+                                          {phaseInfo.name}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+
+                          {/* Current Status Message */}
+                          <div className="space-y-2">
+                            <div className="text-xs text-neutral-600 font-medium">
+                              {(() => {
+                                const stage = analysisDetails[document.id]?.stage || 'initializing'
+                                const stageInfo = getAnalysisStageIcon(stage)
+                                return stageInfo.description
+                              })()}
+                            </div>
+                            
+                            {/* AI Reasoning Section - Collapsible */}
+                            {analysisDetails[document.id]?.thoughtProcess ? (
+                              <div className="text-xs">
                                 {(() => {
-                                  const stage = analysisDetails[document.id]?.stage || 'initializing'
-                                  const stageInfo = getAnalysisStageIcon(stage)
-                                  return stageInfo.description
+                                  const reasoningText = analysisDetails[document.id].thoughtProcess
+                                  const cleanText = reasoningText.replace(/^🧠\s*(AI:\s*)?/, '').trim()
+                                  const { title, content } = parseReasoningText(cleanText)
+                                  const isExpanded = expandedReasoning[document.id]
+                                  
+                                  return (
+                                    <div className="border border-primary-200 rounded-md bg-white/50">
+                                      <button
+                                        onClick={() => toggleReasoning(document.id)}
+                                        className="flex items-center justify-between w-full text-left px-2.5 py-2 hover:bg-primary-50/50 rounded-md transition-colors"
+                                        aria-expanded={isExpanded}
+                                        aria-label={isExpanded ? `Collapse AI reasoning: ${title}` : `Expand AI reasoning: ${title}`}
+                                      >
+                                        <div className="flex items-center space-x-1.5 flex-1 min-w-0">
+                                          <Brain className="h-3 w-3 text-primary-600 flex-shrink-0" />
+                                          <span className="text-neutral-700 font-medium truncate">{title}</span>
+                                        </div>
+                                        <ChevronDown 
+                                          className={`w-3 h-3 text-neutral-400 transition-transform flex-shrink-0 ml-2 ${
+                                            isExpanded ? 'rotate-180' : ''
+                                          }`}
+                                          aria-hidden="true"
+                                        />
+                                      </button>
+                                      {isExpanded && (
+                                        <div className="px-2.5 pb-2 text-neutral-600 text-xs border-t border-primary-100 pt-2 max-h-32 overflow-y-auto">
+                                          {content}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )
                                 })()}
                               </div>
-                              
-                              {/* AI Reasoning Section - Collapsible */}
-                              {analysisStatus[document.id] && (analysisStatus[document.id].includes('🧠') || analysisStatus[document.id].includes('**')) ? (
-                                <div className="text-xs">
-                                  {(() => {
-                                    const reasoningText = analysisStatus[document.id]
-                                    // Clean up the text by removing prefixes
-                                    const cleanText = reasoningText.replace(/^🧠\s*(AI:\s*)?/, '').trim()
-                                    const { title, content } = parseReasoningText(cleanText)
-                                    const isExpanded = expandedReasoning[document.id]
-                                    
-                                    return (
-                                      <div className="border border-neutral-200 rounded bg-neutral-50/50">
-                                        <button
-                                          onClick={() => toggleReasoning(document.id)}
-                                          className="flex items-center justify-between w-full text-left p-2 hover:bg-neutral-100 rounded transition-colors"
-                                          aria-expanded={isExpanded}
-                                          aria-label={isExpanded ? `Collapse AI reasoning: ${title}` : `Expand AI reasoning: ${title}`}
-                                        >
-                                          <div className="flex items-center space-x-1">
-                                            <span>🧠</span>
-                                            <span className="text-neutral-600 font-medium">{title}</span>
-                                          </div>
-                                          <ChevronDown 
-                                            className={`w-3 h-3 text-neutral-400 transition-transform ${
-                                              isExpanded ? 'rotate-180' : ''
-                                            }`}
-                                            aria-hidden="true"
-                                          />
-                                        </button>
-                                        {isExpanded && (
-                                          <div className="px-2 pb-2 text-neutral-500 text-xs border-t border-neutral-200 pt-2 max-h-32 overflow-y-auto">
-                                            {content}
-                                          </div>
-                                        )}
-                                      </div>
-                                    )
-                                  })()}
-                                </div>
-                              ) : (
-                                <div className="text-xs text-neutral-500">
-                                  {analysisStatus[document.id] || 'Starting analysis...'}
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Analysis Details */}
-                            {analysisDetails[document.id] && Object.keys(analysisDetails[document.id]).length > 1 && (
-                              <div className="flex flex-wrap gap-2 text-xs">
-                                {analysisDetails[document.id].biomarkersCount && (
-                                  <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full">
-                                    {analysisDetails[document.id].biomarkersCount} biomarkers
-                                  </span>
-                                )}
-                                {analysisDetails[document.id].insights && (
-                                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full">
-                                    {analysisDetails[document.id].insights} insights
-                                  </span>
-                                )}
-                                {analysisDetails[document.id].supplements && (
-                                  <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-full">
-                                    {analysisDetails[document.id].supplements} supplements
-                                  </span>
-                                )}
-                                {analysisDetails[document.id].healthScore && (
-                                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
-                                    Score: {analysisDetails[document.id].healthScore}/100
-                                  </span>
-                                )}
+                            ) : analysisStatus[document.id] ? (
+                              <div className="text-xs text-neutral-600 px-2 py-1.5 bg-white/50 rounded border border-neutral-200">
+                                {analysisStatus[document.id]}
                               </div>
-                            )}
+                            ) : null}
                           </div>
+
+                          {/* Core Complete Badge (show when user can view partial results) */}
+                          {analysisDetails[document.id]?.coreComplete && (
+                            <div className="flex items-center space-x-2 px-2.5 py-2 bg-primary-50 border border-primary-200 rounded-md">
+                              <CheckCircle className="h-3.5 w-3.5 text-primary-600" />
+                              <span className="text-xs font-medium text-primary-700">
+                                Core analysis complete! Generating recommendations...
+                              </span>
+                            </div>
+                          )}
 
                           {/* Cancel Button */}
                           <Button
                             onClick={() => cancelAnalysis(document.id)}
                             variant="outline"
                             size="sm"
-                            className="w-full text-xs"
+                            className="w-full text-xs h-8"
                           >
-                            <X className="mr-1 h-3 w-3" />
+                            <X className="mr-1.5 h-3 w-3" />
                             Cancel Analysis
                           </Button>
                         </div>

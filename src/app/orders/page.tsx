@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { fetchOrders } from '@/lib/orders-service';
@@ -30,6 +30,9 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Track if data has been loaded to prevent unnecessary re-fetches
+  const dataLoadedRef = useRef(false);
 
   // Fetch orders
   useEffect(() => {
@@ -41,16 +44,23 @@ export default function OrdersPage() {
         return;
       }
 
+      // Only fetch once
+      if (dataLoadedRef.current) {
+        return;
+      }
+
+      dataLoadedRef.current = true;
       setIsLoading(true);
       setError(null);
       try {
         const response = await fetchOrders(session.access_token);
         setOrders(response.orders);
       } catch (err) {
-        console.error('Error loading orders:', err);
         const message = err instanceof Error ? err.message : 'Failed to load orders';
         setError(message);
         toast.error(message);
+        // Reset on error to allow retry
+        dataLoadedRef.current = false;
       } finally {
         setIsLoading(false);
       }

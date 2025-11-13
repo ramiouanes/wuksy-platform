@@ -18,7 +18,6 @@ export function useAdminAuth() {
       const data = await response.json()
       setIsAuthenticated(data.authenticated)
     } catch (error) {
-      console.error('Error checking admin auth:', error)
       setIsAuthenticated(false)
     } finally {
       setIsLoading(false)
@@ -31,7 +30,7 @@ export function useAdminAuth() {
       setIsAuthenticated(false)
       router.push('/coming-soon')
     } catch (error) {
-      console.error('Error logging out:', error)
+      // Error logging out
     }
   }
 

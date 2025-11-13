@@ -38,19 +38,14 @@ function SignInForm() {
     setIsLoading(true)
     setError('')
 
-    console.log('🔄 Sign-in attempt started...', { email: formData.email })
-
     try {
       await signIn(formData.email, formData.password)
-      console.log('✅ Sign-in successful')
       
       // No delay needed - session is now in cookies
       // Middleware handles refresh, AuthProvider syncs immediately
-      console.log('🔄 Redirecting to dashboard...')
       router.replace('/dashboard')  // Use replace instead of push
       
     } catch (err: any) {
-      console.error('❌ Sign-in error:', err)
       setError(err.message || 'An error occurred during sign in')
       setIsLoading(false)  // Only reset loading on error
     }

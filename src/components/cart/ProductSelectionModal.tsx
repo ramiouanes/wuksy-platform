@@ -61,7 +61,6 @@ export default function ProductSelectionModal({
         setError('No products available for this supplement yet. Check back soon!');
       }
     } catch (err) {
-      console.error('Error fetching products:', err);
       setError('Failed to load products. Please try again.');
     } finally {
       setLoading(false);
@@ -79,7 +78,6 @@ export default function ProductSelectionModal({
         onClose();
       }, 800);
     } catch (err) {
-      console.error('Error adding to cart:', err);
       // Error toast is already shown by addToCart
     } finally {
       setAddingProductId(null);

@@ -44,8 +44,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const fetchedCart = await cartService.fetchCart(session.access_token);
       setCart(fetchedCart);
     } catch (error) {
-      console.error('Error fetching cart:', error);
-      // Don't show error toast on initial load, just log it
+      // Don't show error toast on initial load
       setCart(null);
     } finally {
       setIsLoading(false);
@@ -83,7 +82,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setCart(updatedCart);
       toast.success('Added to cart');
     } catch (error) {
-      console.error('Error adding to cart:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to add to cart');
       throw error;
     } finally {
@@ -105,7 +103,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       await refreshCart();
       toast.success('Item removed from cart');
     } catch (error) {
-      console.error('Error removing from cart:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to remove item');
       throw error;
     } finally {
@@ -131,7 +128,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // Refresh cart after updating
       await refreshCart();
     } catch (error) {
-      console.error('Error updating quantity:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to update quantity');
       throw error;
     } finally {
@@ -152,7 +148,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setCart(null);
       toast.success('Cart cleared');
     } catch (error) {
-      console.error('Error clearing cart:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to clear cart');
       throw error;
     } finally {

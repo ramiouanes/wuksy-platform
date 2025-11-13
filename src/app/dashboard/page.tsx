@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
@@ -57,34 +57,46 @@ export default function DashboardPage() {
   const prefersReducedMotion = useReducedMotion()
   const breakpoint = useBreakpoint()
   const isMobile = breakpoint === 'xs' || breakpoint === 'sm'
+  
+  // Track if data has been loaded and current user ID to prevent unnecessary re-fetches
+  const dataLoadedRef = useRef(false)
+  const currentUserIdRef = useRef<string | null>(null)
 
   // Simplified auth guards - middleware already checked auth
   useEffect(() => {
     // Only redirect if we're sure there's no session (not just no user)
     // Session is set immediately from cookies, user requires DB fetch
     if (!loading && !session && !user) {
-      console.log('Dashboard: No session detected, redirecting to signin...')
       // Use window.location for immediate redirect (bypasses React Router)
       window.location.href = '/auth/signin'
     }
   }, [user, session, loading])
 
   useEffect(() => {
-    // Fetch data when we have user and session
-    if (user && session) {
+    // Only fetch if:
+    // 1. We have user and session
+    // 2. Data hasn't been loaded yet OR user changed (different user ID)
+    const userIdChanged = user?.id && user.id !== currentUserIdRef.current
+    const shouldFetch = user && session && (!dataLoadedRef.current || userIdChanged)
+    
+    if (shouldFetch) {
+      currentUserIdRef.current = user.id
+      dataLoadedRef.current = true
       fetchDashboardData()
     }
   }, [user, session])
 
   const fetchDashboardData = async () => {
-    if (!session?.access_token) return
+    if (!session?.access_token) {
+      return
+    }
 
     try {
       // Use the new client - it automatically handles sessions from cookies
       const supabase = createClient()
 
       // Fetch user's analyses
-      const { data: analysesData, error: analysesError } = await supabase
+      const { data: analysesData } = await supabase
         .from('health_analyses')
         .select(`
           id,
@@ -97,21 +109,17 @@ export default function DashboardPage() {
         .order('created_at', { ascending: false })
         .limit(5)
 
-      if (analysesError) {
-        console.error('Error fetching analyses:', analysesError)
-      } else {
-        // Add biomarker count to each analysis
-        const analysesWithCounts = analysesData?.map(analysis => ({
-          ...analysis,
-          biomarker_count: Array.isArray(analysis.biomarker_insights) ? analysis.biomarker_insights.length : 0,
-          recommendations_count: 8 // Could be calculated from recommendations_summary
-        })) || []
-        
-        setAnalyses(analysesWithCounts)
-      }
+      // Add biomarker count to each analysis
+      const analysesWithCounts = analysesData?.map(analysis => ({
+        ...analysis,
+        biomarker_count: Array.isArray(analysis.biomarker_insights) ? analysis.biomarker_insights.length : 0,
+        recommendations_count: 8 // Could be calculated from recommendations_summary
+      })) || []
+      
+      setAnalyses(analysesWithCounts)
 
       // Fetch documents with biomarker counts for additional stats
-      const { data: documentsData, error: documentsError } = await supabase
+      const { data: documentsData } = await supabase
         .from('documents')
         .select(`
           id, 
@@ -121,10 +129,6 @@ export default function DashboardPage() {
           biomarker_readings!inner(id)
         `)
         .eq('user_id', user!.id)
-
-      if (documentsError) {
-        console.error('Error fetching documents:', documentsError)
-      }
 
       // Calculate stats
       if (analysesData && documentsData) {
@@ -178,7 +182,7 @@ export default function DashboardPage() {
       }
 
     } catch (error) {
-      console.error('Error fetching dashboard data:', error)
+      // Error fetching dashboard data
     } finally {
       setIsLoading(false)
     }

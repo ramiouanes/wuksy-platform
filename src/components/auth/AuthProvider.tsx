@@ -48,34 +48,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single()
 
       if (error) {
-        console.error('Error fetching user profile:', error)
         setUser(null)
         return
       }
 
       setUser(profile)
     } catch (error) {
-      console.error('Error refreshing user:', error)
       setUser(null)
     }
   }, [supabase])
 
   useEffect(() => {
+    // Track previous token to prevent unnecessary session updates
+    let prevAccessToken: string | null = null
+
     // Get initial session - now instant because it reads from cookies
     const initializeAuth = async () => {
       try {
-        console.log('🔄 Initializing auth...')
         const { data: { session: initialSession }, error } = await supabase.auth.getSession()
         
         if (error) {
-          console.error('❌ Error getting session:', error)
           setSession(null)
           setUser(null)
           setLoading(false)
           return
         }
         
-        console.log('📍 Session status:', initialSession ? 'Found' : 'None', initialSession?.user?.email)
+        prevAccessToken = initialSession?.access_token || null
         setSession(initialSession)
         
         if (initialSession?.user) {
@@ -84,7 +83,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null)
         }
       } catch (error) {
-        console.error('❌ Error initializing auth:', error)
         setSession(null)
         setUser(null)
       } finally {
@@ -97,16 +95,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔔 Auth state changed:', event, session?.user?.email || 'no user')
-        setSession(session)
+        // Only update session if token actually changed to prevent unnecessary re-renders
+        const newAccessToken = session?.access_token || null
+        const tokenChanged = newAccessToken !== prevAccessToken
+        
+        if (tokenChanged || event === 'SIGNED_OUT') {
+          prevAccessToken = newAccessToken
+          setSession(session)
+        }
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          if (session?.user) {
+          if (session?.user && tokenChanged) {
             await refreshUser()
           }
         } else if (event === 'SIGNED_OUT') {
           setUser(null)
           setSession(null)
+          prevAccessToken = null
         } else if (event === 'USER_UPDATED') {
           if (session?.user) {
             await refreshUser()
@@ -126,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null)
       setSession(null)
     } catch (error) {
-      console.error('Error signing out:', error)
+      // Error signing out
     }
   }
 

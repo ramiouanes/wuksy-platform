@@ -94,7 +94,6 @@ export default function BiomarkersPage() {
         const data: BiomarkersResponse = await response.json()
         setBiomarkersData(data)
       } catch (err) {
-        console.error('Error fetching biomarkers:', err)
         setError(err instanceof Error ? err.message : 'Failed to load biomarkers')
       } finally {
         setLoading(false)

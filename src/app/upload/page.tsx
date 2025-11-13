@@ -120,8 +120,6 @@ export default function UploadPage() {
 
   const processDocumentWithPolling = async (documentId: string, fileId: string, token: string | undefined) => {
     if (!token) throw new Error('No authentication token available')
-
-    console.log('🚀 Starting document processing for:', documentId)
     
     // Step 1: Trigger the processing job
     try {
@@ -137,15 +135,12 @@ export default function UploadPage() {
         throw new Error(`Failed to trigger processing: ${triggerResponse.statusText}`)
       }
 
-      const triggerResult = await triggerResponse.json()
-      console.log('✅ Processing triggered:', triggerResult)
+      await triggerResponse.json()
     } catch (error) {
-      console.error('❌ Failed to trigger processing:', error)
       throw error
     }
 
     // Step 2: Poll for status updates
-    console.log('📊 Starting status polling for document:', documentId)
     const startTime = Date.now()
     const maxDuration = 3 * 60 * 1000 // 3 minutes
     let pollCount = 0
@@ -176,7 +171,6 @@ export default function UploadPage() {
           }
 
           const data = await response.json()
-          console.log(`📊 Poll #${pollCount}:`, data.status, data.currentPhase, 'ThoughtProcess:', data.thoughtProcess?.substring(0, 50))
 
           // Calculate progress
           let progressPercentage = data.progress || 0
@@ -210,7 +204,6 @@ export default function UploadPage() {
           // Check completion
           if (data.status === 'completed') {
             clearInterval(intervalId)
-            console.log(`✅ Processing complete after ${elapsed}ms`)
             resolve()
           } else if (data.status === 'failed') {
             clearInterval(intervalId)
@@ -218,7 +211,6 @@ export default function UploadPage() {
           }
 
         } catch (error) {
-          console.error('Poll error:', error)
           if (pollCount > 5) {
             clearInterval(intervalId)
             reject(error)
@@ -289,11 +281,10 @@ export default function UploadPage() {
         try {
           await processDocumentWithPolling(uploadResult.document.id, fileObj.id, session?.access_token)
         } catch (processingError) {
-          console.error('Processing failed:', processingError)
           // Extract error message from the error object
           const errorMessage = processingError instanceof Error 
             ? processingError.message 
-            : 'Processing failed - check console for details'
+            : 'Processing failed'
           
           setFiles(prev => prev.map(f => 
             f.id === fileObj.id 
@@ -304,7 +295,6 @@ export default function UploadPage() {
       }
       
     } catch (error) {
-      console.error('Upload failed:', error)
       setFiles(prev => prev.map(f => ({ ...f, status: 'error' as const })))
     } finally {
       setIsUploading(false)

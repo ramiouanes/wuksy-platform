@@ -154,7 +154,6 @@ export default function CheckoutWizard() {
       toast.success('Order placed successfully!');
       // Don't reset isCreatingOrder.current on success - we've moved to success page
     } catch (error) {
-      console.error('Checkout error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to complete checkout');
       // Reset on error so user can retry
       isCreatingOrder.current = false;

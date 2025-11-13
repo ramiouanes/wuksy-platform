@@ -110,6 +110,5 @@ export async function saveShippingAddress(
 ): Promise<void> {
   // TODO: Implement user profile update API endpoint
   // This would save the shipping address to the user's profile for future use
-  console.log('Save shipping address not yet implemented');
 }
 

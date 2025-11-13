@@ -69,7 +69,6 @@ export default function OrderDetailPage() {
         const fetchedOrder = await fetchOrderById(session.access_token, orderId);
         setOrder(fetchedOrder);
       } catch (err) {
-        console.error('Error loading order:', err);
         const message = err instanceof Error ? err.message : 'Failed to load order';
         setError(message);
         toast.error(message);

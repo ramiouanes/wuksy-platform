@@ -87,7 +87,6 @@ export default function ProfilePage() {
     // Only redirect if we're sure there's no session (not just no user)
     // Session is set immediately from cookies, user requires DB fetch
     if (!session && !user) {
-      console.log('Profile: No session detected, redirecting to signin...')
       // Use window.location for immediate redirect (bypasses React Router)
       window.location.href = '/auth/signin'
       return
@@ -117,7 +116,6 @@ export default function ProfilePage() {
         
         if (response.status === 401) {
           // Unauthorized, redirect to signin
-          console.log('Profile: Unauthorized, redirecting to signin...')
           window.location.href = '/auth/signin'
           return
         }
@@ -152,7 +150,6 @@ export default function ProfilePage() {
           throw new Error('Failed to load profile')
         }
       } catch (error) {
-        console.error('Failed to load profile:', error)
         setError('Failed to load profile data')
         // Reset ref on error to allow retry
         profileLoadedRef.current = false
@@ -186,7 +183,6 @@ export default function ProfilePage() {
 
       if (response.status === 401) {
         // Unauthorized, redirect to signin
-        console.log('Profile: Unauthorized during save, redirecting to signin...')
         window.location.href = '/auth/signin'
         return
       }
@@ -199,7 +195,6 @@ export default function ProfilePage() {
         throw new Error(errorData.error || 'Failed to save profile')
       }
     } catch (error) {
-      console.error('Error saving profile:', error)
       setError(error instanceof Error ? error.message : 'Failed to save profile')
     } finally {
       setIsSaving(false)
