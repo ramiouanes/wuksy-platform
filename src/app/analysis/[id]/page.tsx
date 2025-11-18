@@ -605,157 +605,351 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
             >
               {activeTab === 'overview' && (
                 <div className="space-y-6">
-                  {/* Health Score Summary */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Card className="p-4 border-neutral-200">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="text-2xl font-light text-red-600">
-                            {analysis.biomarker_insights?.filter((b: any) => b.status === 'deficient').length || 0}
-                          </div>
-                          <div className="text-sm text-neutral-600">Priority Issues</div>
-                        </div>
-                        <AlertCircle className="h-6 w-6 text-red-500" />
+                  {/* Action Plan Overview */}
+                  <Card className="p-6 border-2 border-neutral-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-neutral-900 flex items-center">
+                          <Target className="h-5 w-5 text-primary-600 mr-2" />
+                          Your Personalized Action Plan
+                        </h3>
+                        <p className="text-sm text-neutral-600 mt-1">Click any card to explore detailed recommendations</p>
                       </div>
-                    </Card>
-                    
-                    <Card className="p-4 border-neutral-200">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="text-2xl font-light text-emerald-600">
-                            {analysis.biomarker_insights?.filter((b: any) => b.status === 'optimal').length || 0}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {/* Supplements */}
+                      <div 
+                        className="p-4 bg-white rounded-lg border-2 border-neutral-200 hover:border-neutral-400 hover:shadow-lg transition-all cursor-pointer group"
+                        onClick={() => setActiveTab('supplements')}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="bg-primary-100 p-2 rounded-lg group-hover:bg-primary-200 transition-colors">
+                            <Pill className="h-5 w-5 text-primary-600" />
                           </div>
-                          <div className="text-sm text-neutral-600">Optimal</div>
+                          <span className="text-2xl font-semibold text-primary-700">{supplements.length}</span>
                         </div>
-                        <CheckCircle className="h-6 w-6 text-emerald-500" />
-                      </div>
-                    </Card>
-                    
-                    <Card className="p-4 border-neutral-200">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="text-2xl font-light text-neutral-800">
-                            {supplements.length + lifestyle.length + diet.length + workout.length}
+                        <h4 className="text-sm font-semibold text-neutral-900 mb-2">Supplements</h4>
+                        {supplements.length > 0 ? (
+                          <div className="space-y-1">
+                            <div className="text-xs text-neutral-600">
+                              <span className="font-medium text-red-600">{supplements.filter(s => s.priority === 'essential').length}</span> Essential
+                            </div>
+                            <div className="text-xs text-neutral-600">
+                              <span className="font-medium text-sage-600">{supplements.filter(s => s.priority === 'beneficial').length}</span> Beneficial
+                            </div>
                           </div>
-                          <div className="text-sm text-neutral-600">Recommendations</div>
-                        </div>
-                        <Heart className="h-6 w-6 text-neutral-500" />
+                        ) : (
+                          <p className="text-xs text-neutral-500 italic">No supplements needed</p>
+                        )}
                       </div>
-                    </Card>
-                  </div>
 
-                  {/* Key Insights */}
-                  <Card className="p-6">
-                    <h3 className="text-xl font-medium text-neutral-800 mb-6">Key Insights</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Priority Actions */}
-                      <div className="space-y-4">
-                        <h4 className="font-medium text-neutral-800 flex items-center">
-                          <AlertCircle className="h-4 w-4 text-red-500 mr-2" />
-                          Priority Actions
-                        </h4>
-                        <div className="space-y-2">
-                          {analysis.biomarker_insights
-                            ?.filter((insight: any) => insight.status === 'deficient')
-                            .slice(0, 3)
-                            .map((insight: any, index: number) => (
-                              <div key={index} className="flex items-center space-x-3 p-2 bg-red-50 rounded-lg border border-red-200 hover:bg-red-100 transition-colors">
-                                <AlertCircle className="h-3 w-3 text-red-500 flex-shrink-0" />
-                                <div className="text-sm font-medium text-neutral-800">
-                                  {insight.biomarker_name || insight.biomarker}
-                                </div>
-                              </div>
-                            ))}
-                          {analysis.biomarker_insights?.filter((insight: any) => insight.status === 'deficient').length === 0 && (
-                            <div className="text-sm text-neutral-500 italic">No critical issues found</div>
-                          )}
+                      {/* Diet */}
+                      <div 
+                        className="p-4 bg-white rounded-lg border-2 border-neutral-200 hover:border-neutral-400 hover:shadow-lg transition-all cursor-pointer group"
+                        onClick={() => setActiveTab('diet')}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="bg-sage-100 p-2 rounded-lg group-hover:bg-sage-200 transition-colors">
+                            <Utensils className="h-5 w-5 text-sage-600" />
+                          </div>
+                          <span className="text-2xl font-semibold text-sage-700">{diet.length}</span>
                         </div>
+                        <h4 className="text-sm font-semibold text-neutral-900 mb-2">Diet Plans</h4>
+                        {diet.length > 0 ? (
+                          <div className="text-xs text-neutral-600 line-clamp-2">
+                            {diet[0].plan_name || diet[0].category || 'Personalized nutrition'}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-neutral-500 italic">No diet plans</p>
+                        )}
                       </div>
-                      
-                      {/* Optimal Biomarkers */}
-                      <div className="space-y-4">
-                        <h4 className="font-medium text-neutral-800 flex items-center">
-                          <CheckCircle className="h-4 w-4 text-emerald-500 mr-2" />
-                          Optimal Biomarkers
-                        </h4>
-                        <div className="space-y-2">
-                          {analysis.biomarker_insights
-                            ?.filter((insight: any) => insight.status === 'optimal')
-                            .slice(0, 3)
-                            .map((insight: any, index: number) => (
-                              <div key={index} className="flex items-center space-x-3 p-2 bg-emerald-50 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition-colors">
-                                <CheckCircle className="h-3 w-3 text-emerald-500 flex-shrink-0" />
-                                <div className="text-sm font-medium text-neutral-800">
-                                  {insight.biomarker_name || insight.biomarker}
-                                </div>
-                              </div>
-                            ))}
-                          {analysis.biomarker_insights?.filter((insight: any) => insight.status === 'optimal').length === 0 && (
-                            <div className="text-sm text-neutral-500 italic">No optimal biomarkers found</div>
-                          )}
+
+                      {/* Lifestyle */}
+                      <div 
+                        className="p-4 bg-white rounded-lg border-2 border-neutral-200 hover:border-neutral-400 hover:shadow-lg transition-all cursor-pointer group"
+                        onClick={() => setActiveTab('lifestyle')}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="bg-amber-100 p-2 rounded-lg group-hover:bg-amber-200 transition-colors">
+                            <Heart className="h-5 w-5 text-amber-600" />
+                          </div>
+                          <span className="text-2xl font-semibold text-amber-700">{lifestyle.length}</span>
                         </div>
+                        <h4 className="text-sm font-semibold text-neutral-900 mb-2">Lifestyle</h4>
+                        {lifestyle.length > 0 ? (
+                          <div className="text-xs text-neutral-600 line-clamp-2">
+                            {lifestyle[0].specific_recommendation || lifestyle[0].category || 'Lifestyle changes'}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-neutral-500 italic">No lifestyle changes</p>
+                        )}
+                      </div>
+
+                      {/* Workout */}
+                      <div 
+                        className="p-4 bg-white rounded-lg border-2 border-neutral-200 hover:border-neutral-400 hover:shadow-lg transition-all cursor-pointer group"
+                        onClick={() => setActiveTab('workout')}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="bg-emerald-100 p-2 rounded-lg group-hover:bg-emerald-200 transition-colors">
+                            <Dumbbell className="h-5 w-5 text-emerald-600" />
+                          </div>
+                          <span className="text-2xl font-semibold text-emerald-700">{workout.length}</span>
+                        </div>
+                        <h4 className="text-sm font-semibold text-neutral-900 mb-2">Workouts</h4>
+                        {workout.length > 0 ? (
+                          <div className="text-xs text-neutral-600 line-clamp-2">
+                            {workout[0].plan_name || workout[0].workout_type || 'Exercise plan'}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-neutral-500 italic">No workout plans</p>
+                        )}
                       </div>
                     </div>
                   </Card>
 
-                  {/* Key Findings - Full Health Assessment */}
-                  {analysis.overall_health_assessment && (
-                    <Card className="p-6">
-                      <h3 className="text-xl font-medium text-neutral-800 mb-6">Key Findings</h3>
-                      
-                      {analysis.overall_health_assessment.priority_concerns && 
-                       Array.isArray(analysis.overall_health_assessment.priority_concerns) &&
-                       analysis.overall_health_assessment.priority_concerns.length > 0 && (
-                        <div className="mb-6">
-                          <h4 className="font-medium text-neutral-800 mb-3 flex items-center">
-                            <AlertCircle className="h-4 w-4 text-red-500 mr-2" />
-                            Priority Concerns
-                          </h4>
-                          <div className="space-y-2">
-                            {analysis.overall_health_assessment.priority_concerns.map((concern: string, index: number) => (
-                              <div key={index} className="flex items-start space-x-2 p-2 bg-red-50 rounded-lg border border-red-100">
-                                <AlertCircle className="h-3 w-3 text-red-500 flex-shrink-0 mt-0.5" />
-                                <p className="text-sm text-neutral-700">{concern}</p>
+                  {/* Priority Biomarker Actions */}
+                  <Card className="p-6 border-2 border-red-100">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-neutral-900 flex items-center">
+                          <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+                          What Needs Attention
+                        </h3>
+                        <p className="text-xs text-neutral-600 mt-1">These biomarkers require immediate focus</p>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setActiveTab('biomarkers')}
+                        className="text-xs"
+                      >
+                        View All
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      {analysis.biomarker_insights
+                        ?.filter((insight: any) => insight.status === 'deficient')
+                        .slice(0, 5)
+                        .map((insight: any, index: number) => (
+                          <div key={index} className="p-3 bg-gradient-to-r from-red-50 to-white rounded-lg border border-red-200 hover:shadow-md transition-all">
+                            <div className="flex items-start space-x-3">
+                              <div className="bg-red-100 p-1.5 rounded-full mt-0.5">
+                                <AlertCircle className="h-3.5 w-3.5 text-red-600 flex-shrink-0" />
                               </div>
-                            ))}
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-semibold text-neutral-900">
+                                  {insight.biomarker_name || insight.biomarker}
+                                </div>
+                                {insight.interpretation && (
+                                  <div className="text-xs text-neutral-600 mt-1 leading-relaxed line-clamp-2">
+                                    {insight.interpretation}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </div>
+                        ))}
+                      {analysis.biomarker_insights?.filter((insight: any) => insight.status === 'deficient').length === 0 && (
+                        <div className="text-sm text-emerald-700 text-center py-6 bg-emerald-50 rounded-lg border border-emerald-200">
+                          <CheckCircle className="h-6 w-6 mx-auto mb-2 text-emerald-600" />
+                          <p className="font-medium">Excellent!</p>
+                          <p className="text-xs mt-1">No critical biomarker issues found</p>
                         </div>
                       )}
+                    </div>
+                  </Card>
 
-                      {analysis.overall_health_assessment.key_strengths && 
-                       Array.isArray(analysis.overall_health_assessment.key_strengths) &&
-                       analysis.overall_health_assessment.key_strengths.length > 0 && (
-                        <div className="mb-6">
-                          <h4 className="font-medium text-neutral-800 mb-3 flex items-center">
-                            <CheckCircle className="h-4 w-4 text-emerald-500 mr-2" />
-                            Key Strengths
-                          </h4>
-                          <div className="space-y-2">
-                            {analysis.overall_health_assessment.key_strengths.map((strength: string, index: number) => (
-                              <div key={index} className="flex items-start space-x-2 p-2 bg-emerald-50 rounded-lg border border-emerald-100">
-                                <CheckCircle className="h-3 w-3 text-emerald-500 flex-shrink-0 mt-0.5" />
-                                <p className="text-sm text-neutral-700">{strength}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {analysis.overall_health_assessment.trajectory && (
+                  {/* What's Causing Your Health Issues */}
+                  {analysis.root_causes && Array.isArray(analysis.root_causes) && analysis.root_causes.length > 0 && (
+                    <Card className="p-6 border-2 border-neutral-200">
+                      <div className="flex items-center justify-between mb-4">
                         <div>
-                          <h4 className="font-medium text-neutral-800 mb-3 flex items-center">
-                            <TrendingUp className="h-4 w-4 text-primary-500 mr-2" />
-                            Health Trajectory
-                          </h4>
-                          <p className="text-sm text-neutral-600 leading-relaxed bg-neutral-50 p-4 rounded-lg border border-neutral-200">
-                            {analysis.overall_health_assessment.trajectory}
+                          <h3 className="text-lg font-semibold text-neutral-900 flex items-center">
+                            <Brain className="h-5 w-5 text-purple-600 mr-2" />
+                            What's Causing Your Issues
+                          </h3>
+                          <p className="text-xs text-neutral-600 mt-1">Understanding the underlying root causes</p>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setActiveTab('causes')}
+                          className="text-xs"
+                        >
+                          View All
+                        </Button>
+                      </div>
+                      <div className="space-y-3">
+                        {analysis.root_causes
+                          .filter((cause: any) => cause.priority === 'high' || cause.priority === 'medium')
+                          .slice(0, 3)
+                          .map((cause: any, index: number) => (
+                            <div key={index} className="p-3 bg-neutral-50 rounded-lg border border-neutral-200 hover:border-neutral-300 transition-all">
+                              <div className="flex items-start justify-between mb-2">
+                                <h4 className="text-sm font-semibold text-neutral-900 flex items-center">
+                                  <Brain className="h-3.5 w-3.5 text-purple-600 mr-2 flex-shrink-0" />
+                                  {cause.category}
+                                </h4>
+                                {cause.priority && (
+                                  <span className={`px-2 py-0.5 text-xs font-medium rounded-full flex-shrink-0 ${
+                                    cause.priority === 'high' ? 'bg-red-100 text-red-700' :
+                                    cause.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                                    'bg-neutral-100 text-neutral-600'
+                                  }`}>
+                                    {cause.priority}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-neutral-600 line-clamp-2">
+                                {cause.description}
+                              </p>
+                            </div>
+                          ))}
+                        {analysis.root_causes.filter((cause: any) => cause.priority === 'high' || cause.priority === 'medium').length === 0 && (
+                          <div className="text-sm text-emerald-700 text-center py-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                            <CheckCircle className="h-5 w-5 mx-auto mb-2 text-emerald-600" />
+                            <p className="font-medium">Great news! No major root causes identified</p>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  )}
+
+                  {/* Health Assessment Overview */}
+                  {analysis.overall_health_assessment && (
+                    <>
+                      {/* Health Trajectory - Featured */}
+                      {analysis.overall_health_assessment.trajectory && (
+                        <Card className="p-6 bg-gradient-to-br from-blue-50 via-primary-50 to-white border-2 border-primary-200">
+                          <div className="flex items-start space-x-3">
+                            <div className="bg-primary-100 p-2.5 rounded-lg">
+                              <TrendingUp className="h-5 w-5 text-primary-600" />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="text-lg font-semibold text-neutral-900 mb-2">Your Health Journey</h3>
+                              <p className="text-sm text-neutral-700 leading-relaxed">
+                                {analysis.overall_health_assessment.trajectory}
+                              </p>
+                            </div>
+                          </div>
+                        </Card>
+                      )}
+
+                      {/* Concerns & Strengths Side by Side */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Priority Concerns */}
+                        {analysis.overall_health_assessment.priority_concerns && 
+                         Array.isArray(analysis.overall_health_assessment.priority_concerns) &&
+                         analysis.overall_health_assessment.priority_concerns.length > 0 && (
+                          <Card className="p-6 border-2 border-orange-100">
+                            <h4 className="text-base font-semibold text-neutral-900 mb-3 flex items-center">
+                              <div className="bg-orange-100 p-1.5 rounded-lg mr-2">
+                                <Info className="h-4 w-4 text-orange-600" />
+                              </div>
+                              Areas to Address
+                            </h4>
+                            <div className="space-y-2">
+                              {analysis.overall_health_assessment.priority_concerns.slice(0, 4).map((concern: string, index: number) => (
+                                <div key={index} className="flex items-start space-x-2 p-3 bg-gradient-to-r from-orange-50 to-white rounded-lg border border-orange-100 hover:shadow-sm transition-shadow">
+                                  <div className="bg-orange-100 p-1 rounded-full mt-0.5">
+                                    <div className="w-1.5 h-1.5 bg-orange-600 rounded-full"></div>
+                                  </div>
+                                  <p className="text-sm text-neutral-700 leading-relaxed">{concern}</p>
+                                </div>
+                              ))}
+                              {analysis.overall_health_assessment.priority_concerns.length > 4 && (
+                                <p className="text-xs text-neutral-500 text-center pt-2 font-medium">
+                                  +{analysis.overall_health_assessment.priority_concerns.length - 4} more areas to explore
+                                </p>
+                              )}
+                            </div>
+                          </Card>
+                        )}
+
+                        {/* Key Strengths */}
+                        {analysis.overall_health_assessment.key_strengths && 
+                         Array.isArray(analysis.overall_health_assessment.key_strengths) &&
+                         analysis.overall_health_assessment.key_strengths.length > 0 && (
+                          <Card className="p-6 border-2 border-emerald-100">
+                            <h4 className="text-base font-semibold text-neutral-900 mb-3 flex items-center">
+                              <div className="bg-emerald-100 p-1.5 rounded-lg mr-2">
+                                <Shield className="h-4 w-4 text-emerald-600" />
+                              </div>
+                              Your Health Strengths
+                            </h4>
+                            <div className="space-y-2">
+                              {analysis.overall_health_assessment.key_strengths.slice(0, 4).map((strength: string, index: number) => (
+                                <div key={index} className="flex items-start space-x-2 p-3 bg-gradient-to-r from-emerald-50 to-white rounded-lg border border-emerald-100 hover:shadow-sm transition-shadow">
+                                  <div className="bg-emerald-100 p-1 rounded-full mt-0.5">
+                                    <CheckCircle className="h-3 w-3 text-emerald-600" />
+                                  </div>
+                                  <p className="text-sm text-neutral-700 leading-relaxed">{strength}</p>
+                                </div>
+                              ))}
+                              {analysis.overall_health_assessment.key_strengths.length > 4 && (
+                                <p className="text-xs text-neutral-500 text-center pt-2 font-medium">
+                                  +{analysis.overall_health_assessment.key_strengths.length - 4} more strengths
+                                </p>
+                              )}
+                            </div>
+                          </Card>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Celebrating Your Health Wins */}
+                  {analysis.biomarker_insights?.filter((insight: any) => insight.status === 'optimal').length > 0 && (
+                    <Card className="p-6 bg-gradient-to-br from-emerald-50 via-green-50 to-white border-2 border-emerald-200">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h3 className="text-lg font-semibold text-neutral-900 flex items-center">
+                            <div className="bg-emerald-100 p-2 rounded-lg mr-2">
+                              <CheckCircle className="h-5 w-5 text-emerald-600" />
+                            </div>
+                            Celebrating Your Health Wins
+                          </h3>
+                          <p className="text-xs text-neutral-600 mt-1 ml-11">
+                            These biomarkers are in optimal ranges - keep up the great work!
                           </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-emerald-600">
+                            {analysis.biomarker_insights?.filter((insight: any) => insight.status === 'optimal').length}
+                          </div>
+                          <div className="text-xs text-neutral-500">optimal</div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {analysis.biomarker_insights
+                          ?.filter((insight: any) => insight.status === 'optimal')
+                          .slice(0, 8)
+                          .map((insight: any, index: number) => (
+                            <div key={index} className="flex items-center space-x-2 p-3 bg-white rounded-lg border border-emerald-200 hover:shadow-md transition-all">
+                              <div className="bg-emerald-100 p-1 rounded-full">
+                                <CheckCircle className="h-3 w-3 text-emerald-600 flex-shrink-0" />
+                              </div>
+                              <div className="text-sm font-medium text-neutral-900 truncate">
+                                {insight.biomarker_name || insight.biomarker}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                      {analysis.biomarker_insights?.filter((insight: any) => insight.status === 'optimal').length > 8 && (
+                        <div className="mt-4 text-center">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setActiveTab('biomarkers')}
+                            className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                          >
+                            View All {analysis.biomarker_insights?.filter((insight: any) => insight.status === 'optimal').length} Optimal Biomarkers
+                          </Button>
                         </div>
                       )}
                     </Card>
                   )}
-                  
-
                 </div>
               )}
 

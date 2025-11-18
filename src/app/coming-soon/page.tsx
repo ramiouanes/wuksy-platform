@@ -345,7 +345,7 @@ export default function ComingSoonPage() {
 
           {/* Subtitle */}
           <p className="text-base sm:text-lg text-neutral-600 text-center">
-            Your mindful companion for understanding blood test results
+            Transform your confusing blood test results into <span className="font-bold text-primary-600">personalized</span>, <span className="font-bold text-primary-600">actionable</span>, and <span className="font-bold text-primary-600">empowering</span> wellness plan!
           </p>
 
           {/* Features */}
