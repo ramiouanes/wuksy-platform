@@ -767,7 +767,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
                         <div>
                           <h3 className="text-lg font-semibold text-neutral-900 flex items-center">
                             <Brain className="h-5 w-5 text-purple-600 mr-2" />
-                            What's Causing Your Issues
+                            What&apos;s Causing Your Issues
                           </h3>
                           <p className="text-xs text-neutral-600 mt-1">Understanding the underlying root causes</p>
                         </div>
